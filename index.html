@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>🏔️ Séjour Montagne — YDM</title>
+<title>🏔️ Séjour Cohésion Montagne — YDM</title>
 <style>
 :root{
   --bg:#eef2f7;--card:#fff;--border:#d0d7e3;--text:#1a1f2e;--muted:#6b7280;
   --primary:#1a73e8;--dark:#1557b0;--green:#15803d;--red:#b91c1c;
-  --nav:62px;--r:14px;--sh:0 2px 12px rgba(0,0,0,.1);
+  --r:14px;--sh:0 2px 12px rgba(0,0,0,.1);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:var(--nav);overscroll-behavior:none}
+body{font-family:-apple-system,'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:20px;overscroll-behavior:none}
 
 /* LOGIN */
 #ls{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px;
@@ -43,16 +43,14 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
 .bout{padding:5px 10px;border:1.5px solid rgba(255,255,255,.35);border-radius:7px;
   background:none;color:#fff;cursor:pointer;font-size:11px;font-weight:700}
 
-/* BOTTOM NAV */
-.bnav{position:fixed;bottom:0;left:0;right:0;height:var(--nav);background:#fff;
-  border-top:1.5px solid var(--border);display:flex;z-index:60;
-  box-shadow:0 -3px 12px rgba(0,0,0,.08)}
-.bnt{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:2px;border:none;background:none;cursor:pointer;font-size:10px;font-weight:700;
-  color:var(--muted);transition:color .15s;padding:0;letter-spacing:.4px;text-transform:uppercase}
-.bnt .ic{font-size:24px;line-height:1;transition:transform .15s}
-.bnt.active{color:var(--primary)}
-.bnt.active .ic{transform:scale(1.12)}
+/* HEADER NAV */
+.hnav{display:flex;gap:4px;margin-left:4px}
+.bnt{display:flex;align-items:center;gap:5px;padding:6px 10px;border:1.5px solid rgba(255,255,255,.25);
+  border-radius:8px;background:none;cursor:pointer;font-size:12px;font-weight:700;
+  color:rgba(255,255,255,.75);transition:all .15s;white-space:nowrap}
+.bnt .ic{font-size:15px;line-height:1}
+.bnt.active{background:rgba(255,255,255,.22);color:#fff;border-color:rgba(255,255,255,.55)}
+.bnt:hover{background:rgba(255,255,255,.12);color:#fff}
 
 /* PANELS */
 .panel{display:none;padding:14px 14px 20px;max-width:640px;margin:0 auto}
@@ -203,7 +201,7 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
 .fi:focus{border-color:var(--primary)}
 
 /* TOAST */
-.toast{position:fixed;bottom:calc(var(--nav) + 14px);left:50%;
+.toast{position:fixed;bottom:24px;left:50%;
   transform:translateX(-50%) translateY(16px);background:rgba(30,35,50,.93);
   color:#fff;padding:12px 22px;border-radius:24px;font-size:14px;font-weight:700;
   opacity:0;transition:all .25s;z-index:300;white-space:nowrap;pointer-events:none;
@@ -230,8 +228,13 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
 <div id="ls">
   <div class="lcard">
     <div class="ico">🏔️</div>
-    <h1>Séjour Montagne</h1>
-    <p class="sub">Collège Yves du Manoir<br>Espace enseignants</p>
+    <h1>Séjour Cohésion Montagne</h1>
+    <p class="sub">Collège Yves du Manoir · Espace enseignants</p>
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 14px;margin-bottom:20px;text-align:left;font-size:12px;line-height:1.6;color:#1d4ed8">
+      🔑 <strong>1ère connexion :</strong> votre mot de passe est votre identifiant<br>
+      <span style="color:#374151">Ex : identifiant <em>florian.eude</em> → mdp <em>florian.eude</em></span><br>
+      <span style="color:#374151">💡 Modifiez-le dans <strong>Admin → Comptes</strong> après connexion</span>
+    </div>
     <div class="lform">
       <input id="li" type="text" placeholder="Identifiant (prenom.nom)"
         autocomplete="username" autocapitalize="none" spellcheck="false"
@@ -247,9 +250,20 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
 
 <!-- ═══════ APP ═══════ -->
 <div id="app" style="display:none">
-  <header>
+  <header style="flex-wrap:wrap;gap:8px;padding:10px 14px">
     <div class="hl">🏔️</div>
-    <div class="ht">Séjour Montagne <small>Yves du Manoir · 2025</small></div>
+    <div class="ht">Cohésion Montagne <small>Yves du Manoir · 2025</small></div>
+    <nav class="hnav" id="hnav" style="display:none">
+      <button class="bnt active" id="bnt-classement" onclick="showPanel('classement')">
+        <span class="ic">🏆</span>Classement
+      </button>
+      <button class="bnt" id="bnt-attribuer" onclick="showPanel('attribuer')">
+        <span class="ic">➕</span>Points
+      </button>
+      <button class="bnt" id="bnt-admin" onclick="showPanel('admin')" style="display:none">
+        <span class="ic">⚙️</span>Admin
+      </button>
+    </nav>
     <div class="hu">
       <div class="hdot" id="hdot"></div>
       <span class="hname" id="hname"></span>
@@ -272,18 +286,7 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
     <div id="ad-content"></div>
   </div>
 
-  <!-- BOTTOM NAV -->
-  <nav class="bnav">
-    <button class="bnt active" id="bnt-classement" onclick="showPanel('classement')">
-      <span class="ic">🏆</span>Classement
-    </button>
-    <button class="bnt" id="bnt-attribuer" onclick="showPanel('attribuer')">
-      <span class="ic">➕</span>Points
-    </button>
-    <button class="bnt" id="bnt-admin" onclick="showPanel('admin')" style="display:none">
-      <span class="ic">⚙️</span>Admin
-    </button>
-  </nav>
+
 </div>
 
 <!-- MODAL NOUVELLE ÉQUIPE -->
@@ -500,6 +503,7 @@ function startApp() {
   G('hdot').style.background = cu.color;
   G('hname').textContent = cu.prenom;
   if(cu.role==='admin') G('bnt-admin').style.display = 'flex';
+  G('hnav').style.display = 'flex';
 
   const u1 = onValue(ref(db,'sejour/equipes'), s=>{ EQ=s.val()||{}; rc(); });
   const u2 = onValue(ref(db,'sejour/historique'), s=>{ HI=s.val()||{}; rc(); });
@@ -649,12 +653,15 @@ function rAttr() {
     const c = teamColor(t,i);
     const pts = t.points||0;
     const isSel = selTeam===t.id;
+    const elevs = (t.eleves||[]).map(id=>EM[id]).filter(Boolean);
+    const elevStr = elevs.map(e=>esc(e.p)).join(' · ');
     return `<div class="tsel ${isSel?'sel':''}"
       style="${isSel?`border-color:${c};background:${c}14`:''}"
       onclick="pickTeam('${t.id}')">
-      <div style="width:10px;height:10px;border-radius:50%;background:${c};margin:0 auto 5px"></div>
+      <div style="width:10px;height:10px;border-radius:50%;background:${c};margin:0 auto 4px"></div>
       <div class="tsel-name">${esc(t.nom)}</div>
       <div class="tsel-pts" style="color:${c}">${pts>0?'+':''}${pts}</div>
+      ${elevStr ? `<div style="font-size:9px;color:var(--muted);line-height:1.5;margin-top:3px;word-break:break-word">${elevStr}</div>` : ''}
     </div>`;
   }).join('');
 
@@ -885,6 +892,7 @@ function aComptes() {
         <span class="u-role ${u.role}">${u.role==='admin'?'👑 Admin':'👤 Utilisateur'}</span>
         <div class="pw-row">
           <input type="password" id="pw-${sk}" placeholder="Nouveau mot de passe…">
+          <button type="button" onclick="togEye('pw-${sk}','eye-${sk}')" id="eye-${sk}" style="background:var(--bg);color:var(--muted);border:1.5px solid var(--border);border-radius:7px;padding:7px 8px;cursor:pointer;font-size:14px">👁</button>
           <button onclick="chgPwd('${login}')">Changer</button>
         </div>
       </div>
@@ -902,6 +910,14 @@ window.chgPwd = async login => {
   await set(ref(db,`sejour/passwords/${sk}`),v);
   if(inp) inp.value='';
   toast(`Mot de passe changé pour ${USERS[login].prenom} ✓`,'ok');
+};
+
+/* ═══ TOGGLE EYE ═══ */
+window.togEye = (inputId, btnId) => {
+  const inp = G(inputId); if(!inp) return;
+  const isText = inp.type === 'text';
+  inp.type = isText ? 'password' : 'text';
+  const btn = G(btnId); if(btn) btn.textContent = isText ? '👁' : '🙈';
 };
 
 /* ═══ TOAST ═══ */
