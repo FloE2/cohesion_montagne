@@ -333,6 +333,8 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
 <!-- ═══════ FIREBASE + APP ═══════ -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getDatabase, ref, set, push, update, remove, onValue, get }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
@@ -346,7 +348,8 @@ const fbApp = initializeApp({
   messagingSenderId:"209588148671",
   appId:"1:209588148671:web:b75d0d384a3e27e25b690a"
 });
-const db = getDatabase(fbApp);
+const db   = getDatabase(fbApp);
+const auth = getAuth(fbApp);
 
 /* ═══ UTILISATEURS ═══ */
 const USERS = {
@@ -446,6 +449,19 @@ const ALL = [
   {id:'6C25',p:'Jordan',     n:'Sourdeix-Ménager', c:'6C',s:'G'},
 ];
 
+// Mapping login → email Firebase Auth
+const LOGIN_EMAIL = {
+  'florian.eude':           'florian.eude@ydm.fr',
+  'emeric.cosperec':        'emeric.cosperec@ydm.fr',
+  'christophe.sabrie':      'christophe.sabrie@ydm.fr',
+  'ludivine.acquier':       'ludivine.acquier@ydm.fr',
+  'anna.cridlig':           'anna.cridlig@ydm.fr',
+  'clementine.delaforcade': 'clementine.delaforcade@ydm.fr',
+  'manon.descharmes':       'manon.descharmes@ydm.fr',
+};
+// Mapping email → login (inverse)
+const EMAIL_LOGIN = Object.fromEntries(Object.entries(LOGIN_EMAIL).map(([k,v])=>[v,k]));
+
 // Index rapide élèves
 const EM = {};
 ALL.forEach(e => EM[e.id] = e);
@@ -469,6 +485,7 @@ let HI = {}; // historique
 let RG = {}; // règles
 let PW = {}; // passwords
 let lsns = [];
+let fbAuthUnsub = null;
 let panelAct = 'classement';
 let adminTab = 'equipes';
 let selTeam = null;
@@ -484,27 +501,50 @@ window.doLogin = async () => {
   G('lerr').textContent = '';
   if(!login||!pwd){ G('lerr').textContent = 'Remplissez les deux champs'; return; }
   if(!USERS[login]){ G('lerr').textContent = 'Identifiant inconnu'; return; }
+  const email = LOGIN_EMAIL[login];
   G('lerr').innerHTML = '<span class="spin"></span>';
   try {
-    const snap = await get(ref(db,`sejour/passwords/${san(login)}`));
-    const ok = snap.val() || login;
-    if(pwd !== ok){ G('lerr').textContent = 'Mot de passe incorrect'; return; }
-  } catch(e){ G('lerr').textContent = 'Erreur réseau'; return; }
-  cu = {login, ...USERS[login]};
-  sessionStorage.setItem('sm_u', JSON.stringify(cu));
-  startApp();
+    await signInWithEmailAndPassword(auth, email, pwd);
+    // onAuthStateChanged prend le relais
+  } catch(e) {
+    const msg = (e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password')
+      ? 'Mot de passe incorrect'
+      : e.code === 'auth/too-many-requests'
+      ? 'Trop de tentatives, réessayez plus tard'
+      : 'Erreur de connexion';
+    G('lerr').textContent = msg;
+  }
 };
 
-window.doLogout = () => {
-  sessionStorage.removeItem('sm_u');
-  cu = null; selTeam = null; openCl = new Set();
+window.doLogout = async () => {
   lsns.forEach(u=>u()); lsns = [];
-  EQ={}; HI={}; RG={}; PW={};
-  G('app').style.display = 'none';
-  G('ls').style.display  = 'flex';
+  EQ={}; HI={}; RG={};
+  cu = null; selTeam = null; openCl = new Set();
+  G('app').style.display  = 'none';
+  G('hnav').style.display = 'none';
+  G('ls').style.display   = 'flex';
   G('li').value = ''; G('lp').value = '';
   G('bnt-admin').style.display = 'none';
+  await signOut(auth);
 };
+
+// Firebase Auth gère la persistance de session automatiquement
+onAuthStateChanged(auth, user => {
+  if(user) {
+    const login = EMAIL_LOGIN[user.email];
+    if(!login || !USERS[login]) { signOut(auth); return; }
+    if(cu) return; // déjà connecté
+    cu = {login, fbUser: user, ...USERS[login]};
+    startApp();
+  } else {
+    if(G('app') && G('app').style.display !== 'none') {
+      cu = null;
+      G('app').style.display  = 'none';
+      G('hnav').style.display = 'none';
+      G('ls').style.display   = 'flex';
+    }
+  }
+});
 
 /* ═══ START APP ═══ */
 function startApp() {
@@ -519,8 +559,7 @@ function startApp() {
   const u1 = onValue(ref(db,'sejour/equipes'), s=>{ EQ=s.val()||{}; rc(); });
   const u2 = onValue(ref(db,'sejour/historique'), s=>{ HI=s.val()||{}; rc(); });
   const u3 = onValue(ref(db,'sejour/regles'), s=>{ RG=s.val()||{}; rc(); });
-  const u4 = onValue(ref(db,'sejour/passwords'), s=>{ PW=s.val()||{}; if(panelAct==='admin')rAdmin(); });
-  lsns = [u1,u2,u3,u4];
+  lsns = [u1,u2,u3];
   showPanel('classement');
 }
 
@@ -915,11 +954,11 @@ function aComptes() {
         <div class="u-nm">${esc(u.prenom)} ${esc(u.nom)} ${isMe?'<span class="me-tag">Moi</span>':''}</div>
         <div class="u-lg">${login}</div>
         <span class="u-role ${u.role}">${u.role==='admin'?'👑 Admin':'👤 Utilisateur'}</span>
-        <div class="pw-row">
+        ${isMe ? `<div class="pw-row">
           <input type="password" id="pw-${sk}" placeholder="Nouveau mot de passe…">
           <button type="button" onclick="togEye('pw-${sk}','eye-${sk}')" id="eye-${sk}" style="background:var(--bg);color:var(--muted);border:1.5px solid var(--border);border-radius:7px;padding:7px 8px;cursor:pointer;font-size:14px">👁</button>
           <button onclick="chgPwd('${login}')">Changer</button>
-        </div>
+        </div>` : '<div style="font-size:11px;color:var(--muted);margin-top:4px;font-style:italic">Chaque utilisateur gère son propre mot de passe</div>'}
       </div>
     </div>`;
   }).join('');
@@ -932,9 +971,20 @@ window.chgPwd = async login => {
   const inp = G(`pw-${sk}`);
   const v = inp?.value?.trim();
   if(!v){ toast('Entrez un nouveau mot de passe','err'); return; }
-  await set(ref(db,`sejour/passwords/${sk}`),v);
-  if(inp) inp.value='';
-  toast(`Mot de passe changé pour ${USERS[login].prenom} ✓`,'ok');
+  if(v.length < 6){ toast('Minimum 6 caractères','err'); return; }
+  // On ne peut changer que son propre mot de passe via Firebase Auth
+  if(login !== cu.login){ toast('Vous ne pouvez changer que votre propre mot de passe','err'); return; }
+  try {
+    await updatePassword(cu.fbUser, v);
+    if(inp) inp.value='';
+    toast('Mot de passe changé ✓','ok');
+  } catch(e) {
+    if(e.code === 'auth/requires-recent-login') {
+      toast('Reconnectez-vous pour changer votre mot de passe','err');
+    } else {
+      toast('Erreur : ' + e.message,'err');
+    }
+  }
 };
 
 /* ═══ ANNULER POINT ═══ */
@@ -967,14 +1017,7 @@ function toast(msg,type='') {
   toastTm=setTimeout(()=>{ t.className='toast'; },2600);
 }
 
-/* ═══ INIT SESSION ═══ */
-try {
-  const saved = sessionStorage.getItem('sm_u');
-  if(saved) {
-    const u = JSON.parse(saved);
-    if(USERS[u.login]) { cu=u; startApp(); }
-  }
-} catch(e){}
+/* Firebase Auth gère automatiquement la persistance de session */
 
 </script>
 
