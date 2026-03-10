@@ -102,6 +102,9 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
 .hrg{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hmt{font-size:11px;color:var(--muted)}
 .noh{color:var(--muted);font-size:12px;font-style:italic;padding:4px 0}
+.hdel{background:none;border:none;cursor:pointer;font-size:13px;color:#d1d5db;
+  padding:3px 6px;border-radius:6px;flex-shrink:0;transition:all .15s;font-weight:700}
+.hdel:hover{background:#fee2e2;color:var(--red)}
 
 /* ATTRIBUTION */
 .attr-lbl{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
@@ -239,9 +242,17 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
       <input id="li" type="text" placeholder="Identifiant (prenom.nom)"
         autocomplete="username" autocapitalize="none" spellcheck="false"
         onkeydown="if(event.key==='Enter')document.getElementById('lp').focus()">
-      <input id="lp" type="password" placeholder="Mot de passe"
-        autocomplete="current-password"
-        onkeydown="if(event.key==='Enter')doLogin()">
+      <div style="position:relative">
+        <input id="lp" type="password" placeholder="Mot de passe"
+          autocomplete="current-password"
+          style="width:100%;padding-right:44px"
+          onkeydown="if(event.key==='Enter')doLogin()">
+        <button type="button" onclick="togEye('lp','eye-lp')" id="eye-lp"
+          style="position:absolute;right:12px;top:50%;transform:translateY(-50%);
+          background:none;border:none;cursor:pointer;font-size:16px;opacity:.4;
+          padding:4px;line-height:1;transition:opacity .2s"
+          onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='.4'">👁</button>
+      </div>
       <div class="lerr" id="lerr"></div>
       <button class="lbtn" onclick="doLogin()">🔐 Connexion</button>
     </div>
@@ -589,20 +600,33 @@ function rClass() {
     const isOpen = openCl.has(t.id);
     const elevs = (t.eleves||[]).map(id=>EM[id]).filter(Boolean);
     const hist = teamHisto(t.id).slice(0,10);
+    const lastDelta = hist.length ? hist[0].delta : null;
+    const trendArrow = lastDelta === null ? '' :
+      lastDelta > 0
+        ? `<span style="color:var(--green);font-size:18px;font-weight:900;line-height:1;flex-shrink:0" title="Dernière action : +${lastDelta}">▲</span>`
+        : `<span style="color:var(--red);font-size:18px;font-weight:900;line-height:1;flex-shrink:0" title="Dernière action : ${lastDelta}">▼</span>`;
 
     const stuHtml = elevs.length
       ? elevs.map(e=>`<span class="stag ${e.s}">${e.s==='G'?'♂':'♀'} ${esc(e.p)}</span>`).join('')
       : '<span style="color:var(--muted);font-size:12px;font-style:italic">Aucun élève assigné</span>';
 
     const histHtml = hist.length
-      ? hist.map(h=>`<div class="hrow">
-          <div class="hd" style="background:${h.userColor}" title="${esc(h.userPrenom)}"></div>
-          <div class="hv ${h.delta>0?'p':'m'}">${h.delta>0?'+':''}${h.delta}</div>
-          <div class="htx">
-            <div class="hrg">${esc(h.regle||'Points libres')}</div>
-            <div class="hmt">${esc(h.userPrenom)} · ${tAgo(h.ts)}</div>
-          </div>
-        </div>`).join('')
+      ? hist.map(h=>{
+          const canDel = cu && (cu.role==='admin' || cu.login===h.userId);
+          const delBtn = canDel
+            ? `<button class="hdel" onclick="event.stopPropagation();annulerPoint('${h.id}','${t.id}',${h.delta})"
+                title="Annuler cette attribution">✕</button>`
+            : '';
+          return `<div class="hrow">
+            <div class="hd" style="background:${h.userColor}" title="${esc(h.userPrenom)}"></div>
+            <div class="hv ${h.delta>0?'p':'m'}">${h.delta>0?'+':''}${h.delta}</div>
+            <div class="htx">
+              <div class="hrg">${esc(h.regle||'Points libres')}</div>
+              <div class="hmt">${esc(h.userPrenom)} · ${tAgo(h.ts)}</div>
+            </div>
+            ${delBtn}
+          </div>`;
+        }).join('')
       : '<div class="noh">Aucun point attribué pour le moment</div>';
 
     return `<div class="tc ${isOpen?'open':''}" style="border-color:${col}">
@@ -613,6 +637,7 @@ function rClass() {
           <div class="tc-sub">${elevs.length} élève${elevs.length!==1?'s':''}</div>
         </div>
         <div class="tc-pts ${sc}">${ptsStr}</div>
+        ${trendArrow}
         <div class="tc-arr">▼</div>
       </div>
       <div class="tc-body">
@@ -910,6 +935,19 @@ window.chgPwd = async login => {
   await set(ref(db,`sejour/passwords/${sk}`),v);
   if(inp) inp.value='';
   toast(`Mot de passe changé pour ${USERS[login].prenom} ✓`,'ok');
+};
+
+/* ═══ ANNULER POINT ═══ */
+window.annulerPoint = async (hId, teamId, delta) => {
+  const sign = delta > 0 ? `+${delta}` : `${delta}`;
+  if(!confirm(`Annuler cette attribution de ${sign} pt${Math.abs(delta)>1?'s':''} ?\nLes points seront restitués.`)) return;
+  const t = EQ[teamId]; if(!t) return;
+  const newPts = (t.points||0) - delta;
+  const upd = {};
+  upd[`sejour/equipes/${teamId}/points`] = newPts;
+  upd[`sejour/historique/${hId}`] = null;
+  await update(ref(db), upd);
+  toast(`Attribution annulée · ${sign > 0 ? '-' : '+'}${Math.abs(delta)} pt${Math.abs(delta)>1?'s':''} restitué${Math.abs(delta)>1?'s':''}`, 'ok');
 };
 
 /* ═══ TOGGLE EYE ═══ */
