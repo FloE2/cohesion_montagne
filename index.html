@@ -675,28 +675,63 @@ function teamStats(id) {
   // Calcule les stats de départage depuis l'historique
   const hist = Object.values(HI).filter(h=>h.equipeId===id);
   return {
-    negTotal: hist.filter(h=>h.delta<0).reduce((s,h)=>s+h.delta, 0), // somme pts négatifs (ex: -5)
+    negTotal: hist.filter(h=>h.delta<0).reduce((s,h)=>s+h.delta, 0),
     plus3:    hist.filter(h=>h.delta===3).length,
     plus2:    hist.filter(h=>h.delta===2).length,
     plus1:    hist.filter(h=>h.delta===1).length,
   };
 }
 
+/* ── Index rapide élève → chambre ── */
+function eleveChambresIdx() {
+  const idx = {};
+  Object.entries(CH).forEach(([cid,c])=>{
+    (c.eleves||[]).forEach(eid=>{ idx[eid]=cid; });
+  });
+  return idx;
+}
+
+/* ── Points chambre apportés par les élèves d'une équipe ──
+   Règle : score_chambre × nombre_d_élèves_de_cette_chambre_dans_l'équipe */
+function chambreBonusForTeam(teamId) {
+  const cidx = eleveChambresIdx();
+  const elevIds = EQ[teamId]?.eleves || [];
+  // Compte combien d'élèves de l'équipe sont dans chaque chambre
+  const countPerCh = {};
+  elevIds.forEach(eid=>{
+    const cid = cidx[eid];
+    if(cid) countPerCh[cid] = (countPerCh[cid]||0) + 1;
+  });
+  // Pour chaque chambre représentée : score × nb élèves dans l'équipe
+  return Object.entries(countPerCh).reduce((sum,[cid,nb])=>{
+    return sum + chambreScore(cid) * nb;
+  }, 0);
+}
+
+/* ── Score total d'une équipe (manuel + chambres) ── */
+function totalPts(teamId) {
+  return (EQ[teamId]?.points || 0) + chambreBonusForTeam(teamId);
+}
+
 function sortedTeams() {
-  return Object.entries(EQ).map(([id,t])=>({id,...t,points:t.points||0}))
-    .sort((a,b)=>{
-      // 1. Points totaux décroissants
-      if(b.points !== a.points) return b.points - a.points;
-      // 2. Moins de points négatifs (negTotal est négatif, donc on veut le plus grand = le moins négatif)
-      const sa = teamStats(a.id), sb = teamStats(b.id);
-      if(sb.negTotal !== sa.negTotal) return sb.negTotal - sa.negTotal;
-      // 3. Plus de +3
-      if(sb.plus3 !== sa.plus3) return sb.plus3 - sa.plus3;
-      // 4. Plus de +2
-      if(sb.plus2 !== sa.plus2) return sb.plus2 - sa.plus2;
-      // 5. Plus de +1
-      return sb.plus1 - sa.plus1;
-    });
+  return Object.entries(EQ).map(([id,t])=>({
+    id, ...t,
+    points:    t.points||0,
+    chBonus:   chambreBonusForTeam(id),
+    totalPts:  totalPts(id),
+  })).sort((a,b)=>{
+    // 1. Points totaux (manuel + chambre) décroissants
+    if(b.totalPts !== a.totalPts) return b.totalPts - a.totalPts;
+    // 2. Moins de points négatifs
+    const sa = teamStats(a.id), sb = teamStats(b.id);
+    if(sb.negTotal !== sa.negTotal) return sb.negTotal - sa.negTotal;
+    // 3. Plus de +3
+    if(sb.plus3 !== sa.plus3) return sb.plus3 - sa.plus3;
+    // 4. Plus de +2
+    if(sb.plus2 !== sa.plus2) return sb.plus2 - sa.plus2;
+    // 5. Plus de +1
+    return sb.plus1 - sa.plus1;
+  });
 }
 function teamHisto(id) {
   return Object.values(HI).filter(h=>h.equipeId===id).sort((a,b)=>b.ts-a.ts);
@@ -719,7 +754,7 @@ function rClass() {
   }
 
   // Podium si >= 3 équipes avec pts > 0
-  const withPts = teams.filter(t=>t.points>0);
+  const withPts = teams.filter(t=>t.totalPts>0);
   let podHtml = '';
   if(withPts.length>=3) {
     const top = teams.slice(0,3);
@@ -734,7 +769,7 @@ function rClass() {
           const col=teamColor(t,idx);
           return `<div class="pod pod-${pos[i]}">
             <div class="pod-medal">${medals[i]}</div>
-            <div class="pod-pts" style="color:${col}">${t.points>0?'+':''}${t.points}</div>
+            <div class="pod-pts" style="color:${col}">${t.totalPts>0?'+':''}${t.totalPts}</div>
             <div class="pod-name">${esc(t.nom)}</div>
             <div class="pod-bar" style="background:${col}"></div>
           </div>`;
@@ -747,7 +782,9 @@ function rClass() {
     const col = teamColor(t,i);
     const rank = i+1;
     const rankHtml = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank;
-    const pts = t.points||0;
+    const pts = t.totalPts;
+    const manPts = t.points;
+    const chPts = t.chBonus;
     const sc = pts>0?'pos':pts<0?'neg':'z';
     const ptsStr = pts>0?`+${pts}`:String(pts);
     const isOpen = openCl.has(t.id);
@@ -782,6 +819,14 @@ function rClass() {
         }).join('')
       : '<div class="noh">Aucun point attribué pour le moment</div>';
 
+    // Détail score : activités + chambre
+    const scoreDetail = chPts > 0
+      ? `<div style="display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap;margin-top:2px">
+          <span style="font-size:10px;background:#eff6ff;color:var(--primary);border-radius:8px;padding:1px 6px;font-weight:700">🏆 +${manPts>=0?manPts:manPts}</span>
+          <span style="font-size:10px;background:#f0fdf4;color:var(--green);border-radius:8px;padding:1px 6px;font-weight:700">🛏️ +${chPts}</span>
+        </div>`
+      : '';
+
     return `<div class="tc ${isOpen?'open':''}" style="border-color:${col}">
       <div class="tc-head" onclick="toggleCl('${t.id}')">
         <div class="tc-rank" style="background:${col}">${rankHtml}</div>
@@ -790,9 +835,8 @@ function rClass() {
           <div class="tc-sub">
             ${elevs.length} élève${elevs.length!==1?'s':''}
             ${(()=>{
-              // Affiche le critère de départage si égalité avec l'équipe suivante ou précédente
-              const allPts = teams.map(x=>x.points);
-              const hasEq = allPts.filter(p=>p===t.points).length > 1;
+              const allPts = teams.map(x=>x.totalPts);
+              const hasEq = allPts.filter(p=>p===t.totalPts).length > 1;
               if(!hasEq) return '';
               const st = teamStats(t.id);
               const parts = [];
@@ -803,7 +847,10 @@ function rClass() {
             })()}
           </div>
         </div>
-        <div class="tc-pts ${sc}">${ptsStr}</div>
+        <div style="flex-shrink:0;text-align:right">
+          <div class="tc-pts ${sc}">${ptsStr}</div>
+          ${scoreDetail}
+        </div>
         ${trendArrow}
         <div class="tc-arr">▼</div>
       </div>
@@ -843,7 +890,7 @@ function rAttr() {
 
   const grid = teams.map((t,i)=>{
     const c = teamColor(t,i);
-    const pts = t.points||0;
+    const pts = t.totalPts;
     const isSel = selTeam===t.id;
     const elevs = (t.eleves||[]).map(id=>EM[id]).filter(Boolean);
     const elevStr = elevs.map(e=>esc(e.p)).join(' · ');
@@ -861,9 +908,13 @@ function rAttr() {
     <div style="margin-bottom:8px" class="attr-lbl">2. ATTRIBUER DES POINTS</div>
     <div class="sel-card" style="border-color:${col}">
       <div style="width:14px;height:14px;border-radius:50%;background:${col};flex-shrink:0"></div>
-      <div>
+      <div style="flex:1">
         <div class="sc-name">${esc(sel.nom)}</div>
-        <div class="sc-pts">Score actuel : <strong>${(sel.points||0)>0?'+':''}${sel.points||0} pts</strong></div>
+        <div class="sc-pts">Total : <strong>${sel.totalPts>0?'+':''}${sel.totalPts} pts</strong></div>
+        ${sel.chBonus>0?`<div style="font-size:11px;color:var(--muted);margin-top:2px">
+          <span style="background:#eff6ff;color:var(--primary);border-radius:6px;padding:1px 6px;font-weight:700;margin-right:4px">🏆 Activités : ${sel.points>=0?'+':''}${sel.points}</span>
+          <span style="background:#f0fdf4;color:var(--green);border-radius:6px;padding:1px 6px;font-weight:700">🛏️ Chambres : +${sel.chBonus}</span>
+        </div>`:''}
       </div>
     </div>
     <select class="rsel" id="rsel">
@@ -948,7 +999,7 @@ function aEquipes() {
       <div class="eqa-head" onclick="togAdm('${t.id}')">
         <div class="eqa-ball" style="background:${col}"></div>
         <div class="eqa-name">${esc(t.nom)}</div>
-        <div class="eqa-cnt">${elevs.length} élève${elevs.length!==1?'s':''} · ${t.points||0}pts</div>
+        <div class="eqa-cnt">${elevs.length} élève${elevs.length!==1?'s':''} · ${t.points||0}pts activités${chambreBonusForTeam(t.id)>0?` + 🛏️${chambreBonusForTeam(t.id)}`:''}= ${totalPts(t.id)}pts</div>
         <div class="eqa-arr">▼</div>
       </div>
       <div class="eqa-body">
@@ -1328,8 +1379,12 @@ function renderChRooms() {
     const gIco = c.genre==='G'?'🔵':'🩷';
     const scoreClass = score>0?'pos':'z';
     const activeDayForRoom = chActiveDays[id] || 1;
+    const col = c.genre==='G'?'#3b82f6':'#ec4899';
 
-    const elevesHtml = eleves.map(e=>`<span class="ch-e ${e.s}">${e.s==='G'?'♂':'♀'} ${esc(e.p)} <span style="font-size:9px;opacity:.7">${e.c}</span></span>`).join('');
+    // Élèves — toujours visibles
+    const elevesHtml = eleves.length
+      ? eleves.map(e=>`<span class="ch-e ${e.s}">${e.s==='G'?'♂':'♀'} ${esc(e.p)} <span style="font-size:9px;opacity:.65">${e.c}</span></span>`).join('')
+      : '<span style="font-size:11px;color:var(--muted);font-style:italic">Aucun élève assigné</span>';
 
     // Day tabs
     const dayTabsHtml = Array.from({length:NB_JOURS},(_,i)=>{
@@ -1351,25 +1406,35 @@ function renderChRooms() {
       </div>`;
     }).join('');
 
-    return `<div class="ch-card ${isOpen?'open':''}" style="border-color:${c.genre==='G'?'#3b82f6':'#ec4899'}">
-      <div class="ch-head" onclick="toggleCh('${id}')">
-        <span class="ch-ico">${gIco}</span>
-        <div class="ch-info">
+    return `<div class="ch-card ${isOpen?'open':''}" style="border-color:${col}">
+      <!-- En-tête : nom + score -->
+      <div style="padding:12px 14px 8px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:18px;flex-shrink:0">${gIco}</span>
+        <div style="flex:1;min-width:0">
           <div class="ch-nom">${esc(c.nom)}</div>
-          <div class="ch-sub">${eleves.length} élèves · ${eleves.map(e=>e.c).filter((v,i,a)=>a.indexOf(v)===i).join('+')} · ${pct}%</div>
+          <div style="margin-top:5px;background:var(--bg);border-radius:20px;height:4px;overflow:hidden">
+            <div style="width:${pct}%;height:100%;background:${col};border-radius:20px;transition:width .4s"></div>
+          </div>
         </div>
-        <div class="ch-score-wrap">
+        <div style="text-align:right;flex-shrink:0">
           <div class="ch-score ${scoreClass}">${score}</div>
-          <div style="font-size:9px;color:var(--muted);text-align:right">/${maxScore} pts</div>
-          <div class="ch-arr">▼</div>
+          <div style="font-size:9px;color:var(--muted)">/${maxScore} pts</div>
         </div>
       </div>
-      <div class="ch-body">
-        <div class="ch-eleves">${elevesHtml||'<span style="font-size:12px;color:var(--muted);font-style:italic">Aucun élève</span>'}</div>
-        <div class="day-tabs">${dayTabsHtml}</div>
+      <!-- Élèves TOUJOURS VISIBLES -->
+      <div style="padding:0 14px 10px;display:flex;flex-wrap:wrap;gap:5px">
+        ${elevesHtml}
+      </div>
+      <!-- Toggle critères -->
+      <div class="ch-head" style="padding:8px 14px;border-top:1.5px solid var(--bg)" onclick="toggleCh('${id}')">
+        <span style="font-size:12px;font-weight:700;color:var(--primary);flex:1">📋 Critères · Jour ${activeDayForRoom} · ${jourscore}/${CRITERES.length} ✓</span>
+        <div class="ch-arr" style="font-size:13px;margin-top:0">▼</div>
+      </div>
+      <div class="ch-body" style="padding:0 14px 14px">
+        <div class="day-tabs" style="margin:10px 0 8px">${dayTabsHtml}</div>
         <div class="day-check-zone">
           <div class="day-check-head">
-            <span class="day-check-lbl">📋 Jour ${activeDayForRoom}</span>
+            <span class="day-check-lbl">Jour ${activeDayForRoom}</span>
             <span class="day-check-pts">${jourscore}/${CRITERES.length} ✓</span>
           </div>
           ${criteresHtml}
@@ -1436,8 +1501,26 @@ function renderChAdmin() {
       </div>`).join('');
     const addOpts = unassMatching.map(e=>`<option value="${e.id}">${e.p} ${e.n} (${e.c})</option>`).join('');
     return `<div class="ch-admin-sect" style="border-left:4px solid ${col}">
-      <div class="ch-admin-title">${c.genre==='G'?'🔵':'🩷'} ${esc(c.nom)} <span style="font-weight:400;color:var(--muted);font-size:11px">${eleves.length}/${c.capacite} élèves</span></div>
-      ${elevesList||'<div style="font-size:12px;color:var(--muted);font-style:italic;margin-bottom:6px">Vide</div>'}
+      <!-- Titre + bouton renommer -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span>${c.genre==='G'?'🔵':'🩷'}</span>
+        <div id="ch-nom-disp-${id}" style="flex:1;font-size:13px;font-weight:800">${esc(c.nom)}</div>
+        <span style="font-size:11px;font-weight:400;color:var(--muted)">${eleves.length}/${c.capacite}</span>
+        <button onclick="startRenameCh('${id}')" title="Renommer" style="border:none;background:var(--bg);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;color:var(--muted)">✏️</button>
+      </div>
+      <!-- Zone de renommage (masquée) -->
+      <div id="ch-rename-zone-${id}" style="display:none;margin-bottom:8px">
+        <div style="display:flex;gap:6px">
+          <input id="ch-rename-inp-${id}" value="${esc(c.nom)}"
+            style="flex:1;padding:7px;border:1.5px solid var(--primary);border-radius:8px;font-size:13px;font-weight:700"
+            onkeydown="if(event.key==='Enter')saveChambreNom('${id}');if(event.key==='Escape')cancelRenameCh('${id}')">
+          <button onclick="saveChambreNom('${id}')" style="padding:7px 12px;background:var(--green);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:12px">✓</button>
+          <button onclick="cancelRenameCh('${id}')" style="padding:7px 10px;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px">✕</button>
+        </div>
+      </div>
+      <!-- Liste élèves -->
+      ${elevesList||'<div style="font-size:12px;color:var(--muted);font-style:italic;margin-bottom:6px">Aucun élève</div>'}
+      <!-- Ajouter élève -->
       <div style="display:flex;gap:6px;margin-top:8px">
         <select id="cha-${id}" style="flex:1;padding:7px;border:1.5px solid var(--border);border-radius:8px;font-size:12px">
           <option value="">+ Ajouter ${c.genre==='G'?'un garçon':'une fille'}…</option>
@@ -1472,6 +1555,25 @@ function renderChAdmin() {
     ${unassHtml}
     ${rooms}`;
 }
+
+/* ── Renommer une chambre ── */
+window.startRenameCh = (id) => {
+  G(`ch-rename-zone-${id}`).style.display = 'block';
+  G(`ch-nom-disp-${id}`).style.display = 'none';
+  const inp = G(`ch-rename-inp-${id}`);
+  if(inp){ inp.focus(); inp.select(); }
+};
+window.cancelRenameCh = (id) => {
+  G(`ch-rename-zone-${id}`).style.display = 'none';
+  G(`ch-nom-disp-${id}`).style.display = '';
+};
+window.saveChambreNom = async (id) => {
+  const inp = G(`ch-rename-inp-${id}`);
+  const nom = inp?.value?.trim();
+  if(!nom) return;
+  await update(ref(db,`sejour/chambres/${id}`), {nom});
+  toast(`Chambre renommée : "${nom}" ✓`, 'ok');
+};
 
 /* ── Toggle critère ── */
 window.toggleCrit = async (chambreId, jour, critIdx) => {
