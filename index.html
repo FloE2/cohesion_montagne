@@ -1017,7 +1017,7 @@ function aEquipes() {
       <div class="eqa-body">
         ${elevs.length ? elevs.map(e=>`
           <div class="sm-s">
-            <span class="stag ${e.s}" style="font-size:11px">${e.s==='G'?'♂':'♀'} ${esc(e.p)} ${esc(e.n)}</span>
+            <span class="stag ${e.s}" style="font-size:11px">${e.s==='G'?'♂':'♀'} ${esc(e.p)}.${esc(e.n[0])} ${esc(e.n)}</span>
             <span style="font-size:11px;color:var(--muted);margin-left:2px">${e.c}</span>
             <button class="sm-del" onclick="event.stopPropagation();rmFromTeam('${t.id}','${e.id}')" title="Retirer">✕</button>
           </div>`).join('')
@@ -1395,7 +1395,7 @@ function renderChRooms() {
 
     // Élèves — toujours visibles
     const elevesHtml = eleves.length
-      ? eleves.map(e=>`<span class="ch-e ${e.s}">${e.s==='G'?'♂':'♀'} ${esc(e.p)} <span style="font-size:9px;opacity:.65">${e.c}</span></span>`).join('')
+      ? eleves.map(e=>`<span class="ch-e ${e.s}">${e.s==='G'?'♂':'♀'} ${esc(e.p)}.${esc(e.n[0])} <span style="font-size:9px;opacity:.65">${e.c}</span></span>`).join('')
       : '<span style="font-size:11px;color:var(--muted);font-style:italic">Aucun élève assigné</span>';
 
     // Day tabs
@@ -1508,7 +1508,7 @@ function renderChAdmin() {
     const col = c.genre==='G'?'#3b82f6':'#ec4899';
     const elevesList = eleves.map(e=>`
       <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--bg)">
-        <span class="ch-e ${e.s}" style="flex:1">${e.s==='G'?'♂':'♀'} ${esc(e.p)} ${esc(e.n)} <span style="font-size:9px;opacity:.7">${e.c}</span></span>
+        <span class="ch-e ${e.s}" style="flex:1">${e.s==='G'?'♂':'♀'} ${esc(e.p)}.${esc(e.n[0])} ${esc(e.n)} <span style="font-size:9px;opacity:.7">${e.c}</span></span>
         <button style="border:none;background:none;color:var(--red);cursor:pointer;font-size:16px;padding:0 4px;font-weight:900" onclick="rmFromChambre('${id}','${e.id}')" title="Retirer">✕</button>
       </div>`).join('');
     const addOpts = unassMatching.map(e=>`<option value="${e.id}">${e.p} ${e.n} (${e.c})</option>`).join('');
@@ -1546,8 +1546,8 @@ function renderChAdmin() {
   const unassHtml = (unassG.length||unassF.length)?`
     <div class="ch-admin-sect" style="border-left:4px solid var(--red)">
       <div class="ch-admin-title" style="color:var(--red)">⚠️ Élèves non assignés (${unassG.length+unassF.length})</div>
-      ${unassG.map(e=>`<span class="ch-e G" style="margin:2px">${esc(e.p)} ${e.c}</span>`).join('')}
-      ${unassF.map(e=>`<span class="ch-e F" style="margin:2px">${esc(e.p)} ${e.c}</span>`).join('')}
+      ${unassG.map(e=>`<span class="ch-e G" style="margin:2px">${esc(e.p)}.${esc(e.n[0])} ${e.c}</span>`).join('')}
+      ${unassF.map(e=>`<span class="ch-e F" style="margin:2px">${esc(e.p)}.${esc(e.n[0])} ${e.c}</span>`).join('')}
     </div>`:'';
 
   return `
@@ -1714,7 +1714,7 @@ window.printAllCh = (genre=null) => {
     return `<div class="print-sheet">
       <div class="print-header">
         <div class="print-title">🛏️ ${c.nom}</div>
-        <div class="print-sejour">Séjour Cohésion Montagne · Yves du Manoir · 2025</div>
+        <div class="print-sejour">Séjour Cohésion Montagne · Yves du Manoir · 2026</div>
       </div>
       <div class="print-eleves-row"><strong>Élèves :</strong> ${badges}</div>
       <table class="print-table">
@@ -1753,7 +1753,7 @@ try {
 
 <!-- ═══════ FOOTER ═══════ -->
 <footer style="text-align:center;padding:12px 16px 4px;font-size:11px;color:var(--muted)">
-  Application développée par <strong>Florian Eude</strong> · Collège Yves du Manoir · 2025
+  Application développée par <strong>Florian Eude</strong> · Collège Yves du Manoir · 2026
 </footer>
 
 </body>
