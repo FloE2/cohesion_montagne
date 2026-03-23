@@ -223,6 +223,85 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
 .sep{border:none;border-top:1.5px solid var(--border);margin:12px 0}
 .me-tag{font-size:11px;background:#eff6ff;color:var(--primary);padding:3px 8px;border-radius:10px;font-weight:700;margin-left:4px}
 @media(max-width:380px){.pts-row{gap:6px}.pbtn{padding:14px 6px;font-size:18px}.tgrid{gap:6px}}
+/* ═══ CHAMBRES ═══ */
+.ch-tabs{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px}
+.ch-tab{padding:8px 14px;border:2px solid var(--border);border-radius:20px;font-size:12px;
+  font-weight:700;cursor:pointer;white-space:nowrap;background:var(--card);color:var(--muted);flex-shrink:0}
+.ch-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.ch-filter{display:flex;gap:6px;margin-bottom:12px}
+.ch-fbtn{padding:6px 14px;border:1.5px solid var(--border);border-radius:20px;font-size:12px;
+  font-weight:700;cursor:pointer;background:var(--card);color:var(--muted);flex-shrink:0}
+.ch-fbtn.active{background:var(--text);color:#fff;border-color:var(--text)}
+.ch-grid{display:flex;flex-direction:column;gap:10px}
+.ch-card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;border-left:5px solid transparent}
+.ch-head{padding:12px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+.ch-ico{font-size:20px;flex-shrink:0}
+.ch-info{flex:1;min-width:0}
+.ch-nom{font-size:14px;font-weight:800}
+.ch-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.ch-score-wrap{text-align:right;flex-shrink:0}
+.ch-score{font-size:24px;font-weight:900;line-height:1}
+.ch-score.pos{color:var(--green)}.ch-score.z{color:var(--muted)}
+.ch-arr{font-size:11px;color:var(--muted);transition:transform .2s;margin-top:2px}
+.ch-card.open .ch-arr{transform:rotate(180deg)}
+.ch-body{display:none;border-top:1.5px solid var(--bg);padding:10px 14px 14px}
+.ch-card.open .ch-body{display:block}
+.ch-eleves{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px}
+.ch-e{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:2px}
+.ch-e.G{background:#dbeafe;color:#1d4ed8}.ch-e.F{background:#fce7f3;color:#9d174d}
+.day-tabs{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
+.day-tab{padding:5px 10px;border:1.5px solid var(--border);border-radius:20px;font-size:11px;
+  font-weight:800;cursor:pointer;background:var(--bg);color:var(--muted);flex-shrink:0}
+.day-tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+.day-tab.done{background:#dcfce7;border-color:#16a34a;color:#15803d}
+.day-tab.done.active{background:#15803d;color:#fff}
+.day-check-zone{background:var(--bg);border-radius:12px;padding:12px}
+.day-check-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.day-check-lbl{font-size:13px;font-weight:800}
+.day-check-pts{font-size:20px;font-weight:900;color:var(--primary)}
+.crit-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(0,0,0,.06);cursor:pointer}
+.crit-item:last-child{border-bottom:none}
+.crit-cb{width:24px;height:24px;border-radius:7px;border:2.5px solid var(--border);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;font-size:14px}
+.crit-cb.checked{background:var(--green);border-color:var(--green);color:#fff}
+.crit-ico{font-size:16px;flex-shrink:0}
+.crit-txt{font-size:13px;font-weight:600;flex:1;line-height:1.3}
+.ch-action-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.ch-print-btn{padding:9px 14px;background:var(--bg);border:1.5px solid var(--border);
+  border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;flex:1;min-width:100px}
+/* Classement chambres */
+.ch-rank-grid{display:flex;flex-direction:column;gap:8px}
+.ch-rank-card{background:var(--card);border-radius:12px;padding:12px 14px;box-shadow:var(--sh);
+  display:flex;align-items:center;gap:12px;border-left:5px solid transparent}
+.ch-rank-pos{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:13px;font-weight:900;color:#fff;flex-shrink:0}
+.ch-rank-info{flex:1;min-width:0}
+.ch-rank-nom{font-size:14px;font-weight:800}
+.ch-rank-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.ch-rank-total{font-size:26px;font-weight:900;flex-shrink:0}
+.ch-rank-total.pos{color:var(--green)}.ch-rank-total.z{color:var(--muted)}
+/* Print */
+#print-area{display:none}
+@media print{
+  body>*:not(#print-area){display:none!important}
+  #print-area{display:block!important}
+  .print-sheet{page-break-after:always;padding:16px 18px;font-family:Arial,sans-serif}
+  .print-sheet:last-child{page-break-after:avoid}
+  .print-header{text-align:center;margin-bottom:10px;border-bottom:2.5px solid #333;padding-bottom:8px}
+  .print-title{font-size:20px;font-weight:900;margin-bottom:3px}
+  .print-sejour{font-size:11px;color:#555}
+  .print-eleves-row{margin:8px 0;font-size:12px}
+  .print-eleve-badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;margin:2px;font-weight:700}
+  .print-eleve-badge.G{background:#dbeafe;color:#1d4ed8;border:1px solid #93c5fd}
+  .print-eleve-badge.F{background:#fce7f3;color:#9d174d;border:1px solid #f9a8d4}
+  .print-table{width:100%;border-collapse:collapse;margin-top:8px}
+  .print-table th,.print-table td{border:1.5px solid #555;padding:8px 6px;font-size:11px;vertical-align:middle}
+  .print-table th{background:#e5e7eb;font-weight:800;text-align:center}
+  .crit-label{text-align:left;font-weight:700}
+  .check-cell{text-align:center;width:55px;font-size:13px}
+  .total-row{background:#f3f4f6;font-weight:900}
+  .print-sign{font-size:9px;color:#666;margin-top:8px;text-align:right;font-style:italic}
+}
 </style>
 </head>
 <body>
@@ -274,6 +353,9 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
       <button class="bnt" id="bnt-admin" onclick="showPanel('admin')" style="display:none">
         <span class="ic">⚙️</span>Admin
       </button>
+      <button class="bnt" id="bnt-chambres" onclick="showPanel('chambres')">
+        <span class="ic">🛏️</span>Chambres
+      </button>
     </nav>
     <div class="hu">
       <div class="hdot" id="hdot"></div>
@@ -295,6 +377,11 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
   <!-- ADMIN -->
   <div class="panel" id="panel-admin">
     <div id="ad-content"></div>
+  </div>
+
+  <!-- CHAMBRES -->
+  <div class="panel" id="panel-chambres">
+    <div id="ch-content"></div>
   </div>
 
 
@@ -468,6 +555,8 @@ let EQ = {}; // equipes
 let HI = {}; // historique
 let RG = {}; // règles
 let PW = {}; // passwords
+let CH = {}; // chambres
+let CK = {}; // chambre_checks
 let lsns = [];
 let panelAct = 'classement';
 let adminTab = 'equipes';
@@ -476,6 +565,43 @@ let openCl = new Set();
 let openAdm = null;
 let renameId = null;
 let toastTm;
+let chTab = 'rooms';    // 'rooms' | 'classement' | 'admin'
+let chFilter = 'all';   // 'all' | 'G' | 'F'
+let openCh = new Set();
+let chActiveDays = {};  // chambreId -> jour actif
+
+/* ═══ CRITÈRES CHAMBRE ═══ */
+const CRITERES = [
+  {ico:'🛏️', txt:'Lits faits et couvre-lits tirés'},
+  {ico:'👟', txt:'Chaussures rangées (pas en vrac)'},
+  {ico:'🎒', txt:'Affaires personnelles rangées'},
+  {ico:'🚿', txt:'Salle de bain propre et rangée'},
+  {ico:'🗑️', txt:'Poubelle utilisée / déchets ramassés'},
+];
+const NB_JOURS = 5;
+
+/* ═══ DONNÉES INITIALES CHAMBRES ═══ */
+const INIT_CHAMBRES = [
+  // ── GARÇONS (chalet garçons, chambres de 4) ──
+  {nom:'Garçons 1',  genre:'G', capacite:4, eleves:['6A19','6A04','6B14','6B23']},
+  {nom:'Garçons 2',  genre:'G', capacite:4, eleves:['6A17','6A25','6B01','6B02']},
+  {nom:'Garçons 3',  genre:'G', capacite:4, eleves:['6A02','6A21','6C06','6C15']},
+  {nom:'Garçons 4',  genre:'G', capacite:4, eleves:['6A08','6A10','6C01','6C25']},
+  {nom:'Garçons 5',  genre:'G', capacite:4, eleves:['6A05','6A01','6C14','6C19']},
+  {nom:'Garçons 6',  genre:'G', capacite:4, eleves:['6A18','6A03','6B18','6B19']},
+  {nom:'Garçons 7',  genre:'G', capacite:4, eleves:['6B10','6B03','6B20','6C05']},
+  {nom:'Garçons 8',  genre:'G', capacite:4, eleves:['6B21','6B08','6C09','6C22']},
+  {nom:'Garçons 9',  genre:'G', capacite:5, eleves:['6B05','6B04','6C07','6C16','6C24']},
+  {nom:'Garçons 10', genre:'G', capacite:4, eleves:['6B06','6C02','6C12','6C03']},
+  // ── FILLES (3 chambres de 4 + chambres de 6) ──
+  {nom:'Filles 1',   genre:'F', capacite:4, eleves:['6A20','6A16','6B07','6B22']},
+  {nom:'Filles 2',   genre:'F', capacite:4, eleves:['6A11','6A14','6B09','6B15']},
+  {nom:'Filles 3',   genre:'F', capacite:4, eleves:['6A22','6A13','6B16','6B26']},
+  {nom:'Filles 4',   genre:'F', capacite:6, eleves:['6A24','6A15','6B13','6B17']},
+  {nom:'Filles 5',   genre:'F', capacite:6, eleves:['6B11','6B25','6B12','6B24','6C17','6C18']},
+  {nom:'Filles 6',   genre:'F', capacite:6, eleves:['6C04','6C08','6C11','6C13','6C21']},
+  {nom:'Filles 7',   genre:'F', capacite:6, eleves:['6A09','6A06','6C20','6C23']},
+];
 
 /* ═══ AUTH ═══ */
 window.doLogin = async () => {
@@ -521,7 +647,9 @@ function startApp() {
   const u2 = onValue(ref(db,'sejour/historique'), s=>{ HI=s.val()||{}; rc(); });
   const u3 = onValue(ref(db,'sejour/regles'), s=>{ RG=s.val()||{}; rc(); });
   const u4 = onValue(ref(db,'sejour/passwords'), s=>{ PW=s.val()||{}; if(panelAct==='admin')rAdmin(); });
-  lsns = [u1,u2,u3,u4];
+  const u5 = onValue(ref(db,'sejour/chambres'), s=>{ CH=s.val()||{}; rc(); });
+  const u6 = onValue(ref(db,'sejour/chambre_checks'), s=>{ CK=s.val()||{}; rc(); });
+  lsns = [u1,u2,u3,u4,u5,u6];
   showPanel('classement');
 }
 
@@ -539,6 +667,7 @@ function rc() {
   if(panelAct==='classement') rClass();
   else if(panelAct==='attribuer') rAttr();
   else if(panelAct==='admin') rAdmin();
+  else if(panelAct==='chambres') rChambres();
 }
 
 /* ═══ HELPERS DATA ═══ */
@@ -1026,6 +1155,447 @@ window.togEye = (inputId, btnId) => {
   const btn = G(btnId); if(btn) btn.textContent = isText ? '👁' : '🙈';
 };
 
+/* ═══════════════════════════════════════════════
+   CHAMBRES — BINÔMES (groupes qui restent ensemble)
+   ═══════════════════════════════════════════════ */
+const BINOMES_G = [
+  // Groupes garçons
+  ['6A19','6A04','6B14','6B23'], // Louis+Valentin+Ahmed+Raphaël (4)
+  ['6A17','6A25'],               // César+Eliott
+  ['6A18','6A03'],               // Romann+Mathis B
+  ['6A02','6A21'],               // Nadir+Enzo
+  ['6A08','6A10'],               // Oscar+Mathis G
+  ['6A05','6A01'],               // Jules+Izhac
+  ['6A07','6C25'],               // Marius 6A+Jordan 6C
+  ['6A12'],                      // Nathanaël (solo)
+  ['6A23'],                      // Mark (solo)
+  ['6B01','6B02'],               // Dario+Jules 6B
+  ['6B03','6B10'],               // Giacomo+Morgan
+  ['6B21','6B08'],               // Hugo+Nahel
+  ['6B18','6B19'],               // Lilian+Lucas
+  ['6B06'],                      // Balla (solo — Ahmed est dans groupe Louis)
+  ['6B05'],                      // Augustin (solo — Massin est avec Fansé)
+  ['6C07','6B04'],               // Fansé+Massin (cross-class)
+  ['6B20'],                      // Abel (solo)
+  ['6C06','6C15'],               // Oscar 6C+Gabin
+  ['6C01','6C02'],               // Marius 6C+Clovis
+  ['6C14','6C19'],               // Alexis+Soan
+  ['6C09','6C22'],               // Khodr+Arosh
+  ['6C24','6C16'],               // Alexandre+Axel
+  ['6C12','6C03'],               // Benjamin+Antoine
+  ['6C05'],                      // Camille D'A (solo)
+];
+const BINOMES_F = [
+  // Groupes filles
+  ['6A20','6A16'],               // Coumba+Maelys
+  ['6A24','6A09','6A15','6A06'], // Athenais+Elise+Eva J+Melody (4)
+  ['6A22','6A13'],               // Alicia+Emma
+  ['6A11','6A14'],               // Eva H+Charlotte
+  ['6B07','6B22'],               // Lou+Noa
+  ['6B09','6B15'],               // Livia+Charlise
+  ['6B13','6B17'],               // Emma 6B+Océane
+  ['6B16','6B26'],               // Elena+Margot
+  ['6B11','6B25'],               // Millie Rose+Manon
+  ['6B12','6B24'],               // Louise+Leonor
+  ['6C17','6C18'],               // Anya+Charline
+  ['6C20','6C21'],               // Elise 6C+Selima
+  ['6C23','6C13','6C04'],        // Avril+Maelys 6C+Flore (trio)
+  ['6C08','6C11'],               // Camille D+Bleuenn
+];
+
+/* ── Capacités chambres (index = numéro logique) ── */
+const CAPS_G = [4,4,4,4,4,4,4,4,5,4]; // 10 chambres garçons
+const CAPS_F = [4,4,4,6,6,6,6];        // 7 chambres filles
+
+/* ── Shuffle Fisher-Yates ── */
+function shuffle(arr){ for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr; }
+
+/* ── Algorithme de remplissage: packs binome groups into rooms ── */
+function packGroups(groups, caps) {
+  const rooms = caps.map(c=>({cap:c, eleves:[]}));
+  const sorted = [...groups].sort((a,b)=>b.length-a.length); // grands groupes en premier
+  for(const grp of sorted) {
+    // Cherche une chambre qui peut accueillir ce groupe (préfère la plus proche de la capacité)
+    const candidates = rooms.filter(r=> r.eleves.length + grp.length <= r.cap);
+    if(!candidates.length) {
+      // Débordement: cherche la chambre la plus grande disponible
+      const fallback = rooms.slice().sort((a,b)=>(b.cap-b.eleves.length)-(a.cap-a.eleves.length))[0];
+      fallback.eleves.push(...grp);
+    } else {
+      // Prend la chambre la moins vide (la plus remplie sans dépasser)
+      const best = candidates.sort((a,b)=>(b.cap-b.eleves.length)-(a.cap-a.eleves.length)).pop();
+      best.eleves.push(...grp);
+    }
+  }
+  return rooms;
+}
+
+/* ── Génère une répartition mélangée ── */
+function generateShuffle() {
+  const grG = shuffle([...BINOMES_G]);
+  const grF = shuffle([...BINOMES_F]);
+  const roomsG = packGroups(grG, CAPS_G);
+  const roomsF = packGroups(grF, CAPS_F);
+  return [...roomsG.map((r,i)=>({nom:`Garçons ${i+1}`,genre:'G',capacite:CAPS_G[i],eleves:r.eleves})),
+          ...roomsF.map((r,i)=>({nom:`Filles ${i+1}`,genre:'F',capacite:CAPS_F[i],eleves:r.eleves}))];
+}
+
+/* ── Init chambres depuis Firebase ou depuis INIT_CHAMBRES ── */
+async function initChambresSiVide() {
+  if(Object.keys(CH).length > 0) return;
+  const upd = {};
+  INIT_CHAMBRES.forEach((c,i)=>{
+    const key = `ch_${String(i+1).padStart(2,'0')}`;
+    upd[`sejour/chambres/${key}`] = c;
+  });
+  await update(ref(db), upd);
+  toast('Chambres initialisées ✓','ok');
+}
+
+/* ── Applique une nouvelle répartition ── */
+async function applyNewRepartition(rooms) {
+  // Efface les anciennes chambres (mais PAS les checks)
+  const existing = Object.keys(CH);
+  const upd = {};
+  existing.forEach(k=>{ upd[`sejour/chambres/${k}`] = null; });
+  rooms.forEach((c,i)=>{
+    const key = `ch_${String(i+1).padStart(2,'0')}`;
+    upd[`sejour/chambres/${key}`] = {nom:c.nom, genre:c.genre, capacite:c.capacite, eleves:c.eleves};
+  });
+  await update(ref(db), upd);
+}
+
+/* ── Score d'une chambre ── */
+function chambreScore(chambreId) {
+  const checks = CK[chambreId] || {};
+  let total = 0;
+  for(let j=1;j<=NB_JOURS;j++) {
+    const day = checks[`j${j}`] || {};
+    CRITERES.forEach((_,ci)=>{ if(day[`c${ci}`]) total++; });
+  }
+  return total;
+}
+function chambreScoreJour(chambreId, jour) {
+  const day = (CK[chambreId]||{})[`j${jour}`]||{};
+  return CRITERES.filter((_,ci)=>day[`c${ci}`]).length;
+}
+function chambreJourComplete(chambreId, jour) {
+  return chambreScoreJour(chambreId, jour) === CRITERES.length;
+}
+
+/* ═══ RENDER CHAMBRES ═══ */
+function rChambres() {
+  const hasCh = Object.keys(CH).length > 0;
+  if(!hasCh) {
+    G('ch-content').innerHTML = `<div style="text-align:center;padding:30px 16px">
+      <div style="font-size:40px;margin-bottom:10px">🛏️</div>
+      <p style="font-size:14px;color:var(--muted);margin-bottom:16px">Aucune chambre configurée.</p>
+      ${cu&&cu.role==='admin'?`<button class="btn btn-p" style="margin:0 auto;display:block" onclick="initChambresSiVide()">⚡ Initialiser les chambres</button>`:''}
+    </div>`;
+    return;
+  }
+
+  const tabs = `<div class="ch-tabs">
+    <button class="ch-tab ${chTab==='rooms'?'active':''}" onclick="setChTab('rooms')">🛏️ Chambres</button>
+    <button class="ch-tab ${chTab==='classement'?'active':''}" onclick="setChTab('classement')">🏆 Classement</button>
+    ${cu&&cu.role==='admin'?`<button class="ch-tab ${chTab==='admin'?'active':''}" onclick="setChTab('admin')">⚙️ Gérer</button>`:''}
+  </div>`;
+
+  let body = '';
+  if(chTab==='rooms') body = renderChRooms();
+  else if(chTab==='classement') body = renderChClassement();
+  else if(chTab==='admin') body = renderChAdmin();
+
+  G('ch-content').innerHTML = tabs + body;
+}
+
+/* ── Render liste des chambres ── */
+function renderChRooms() {
+  const allCh = Object.entries(CH).sort((a,b)=>a[0].localeCompare(b[0]));
+  const filterBtns = `<div class="ch-filter">
+    <button class="ch-fbtn ${chFilter==='all'?'active':''}" onclick="setChFilter('all')">Toutes</button>
+    <button class="ch-fbtn ${chFilter==='G'?'active':''}" onclick="setChFilter('G')">♂ Garçons</button>
+    <button class="ch-fbtn ${chFilter==='F'?'active':''}" onclick="setChFilter('F')">♀ Filles</button>
+  </div>`;
+
+  const filtered = allCh.filter(([,c])=>chFilter==='all'||c.genre===chFilter);
+  const cards = filtered.map(([id,c])=>{
+    const score = chambreScore(id);
+    const maxScore = NB_JOURS * CRITERES.length;
+    const pct = Math.round(score/maxScore*100);
+    const isOpen = openCh.has(id);
+    const eleves = (c.eleves||[]).map(eid=>EM[eid]).filter(Boolean);
+    const gIco = c.genre==='G'?'🔵':'🩷';
+    const scoreClass = score>0?'pos':'z';
+    const activeDayForRoom = chActiveDays[id] || 1;
+
+    const elevesHtml = eleves.map(e=>`<span class="ch-e ${e.s}">${e.s==='G'?'♂':'♀'} ${esc(e.p)} <span style="font-size:9px;opacity:.7">${e.c}</span></span>`).join('');
+
+    // Day tabs
+    const dayTabsHtml = Array.from({length:NB_JOURS},(_,i)=>{
+      const j = i+1;
+      const done = chambreJourComplete(id,j);
+      const active = activeDayForRoom===j;
+      return `<button class="day-tab ${done?'done':''} ${active?'active':''}" onclick="setChDay('${id}',${j})">J${j}</button>`;
+    }).join('');
+
+    // Critères pour le jour actif
+    const day = (CK[id]||{})[`j${activeDayForRoom}`]||{};
+    const jourscore = chambreScoreJour(id, activeDayForRoom);
+    const criteresHtml = CRITERES.map((cr,ci)=>{
+      const checked = !!day[`c${ci}`];
+      return `<div class="crit-item" onclick="toggleCrit('${id}',${activeDayForRoom},${ci})">
+        <div class="crit-cb ${checked?'checked':''}">${checked?'✓':''}</div>
+        <span class="crit-ico">${cr.ico}</span>
+        <span class="crit-txt">${cr.txt}</span>
+      </div>`;
+    }).join('');
+
+    return `<div class="ch-card ${isOpen?'open':''}" style="border-color:${c.genre==='G'?'#3b82f6':'#ec4899'}">
+      <div class="ch-head" onclick="toggleCh('${id}')">
+        <span class="ch-ico">${gIco}</span>
+        <div class="ch-info">
+          <div class="ch-nom">${esc(c.nom)}</div>
+          <div class="ch-sub">${eleves.length} élèves · ${eleves.map(e=>e.c).filter((v,i,a)=>a.indexOf(v)===i).join('+')} · ${pct}%</div>
+        </div>
+        <div class="ch-score-wrap">
+          <div class="ch-score ${scoreClass}">${score}</div>
+          <div style="font-size:9px;color:var(--muted);text-align:right">/${maxScore} pts</div>
+          <div class="ch-arr">▼</div>
+        </div>
+      </div>
+      <div class="ch-body">
+        <div class="ch-eleves">${elevesHtml||'<span style="font-size:12px;color:var(--muted);font-style:italic">Aucun élève</span>'}</div>
+        <div class="day-tabs">${dayTabsHtml}</div>
+        <div class="day-check-zone">
+          <div class="day-check-head">
+            <span class="day-check-lbl">📋 Jour ${activeDayForRoom}</span>
+            <span class="day-check-pts">${jourscore}/${CRITERES.length} ✓</span>
+          </div>
+          ${criteresHtml}
+        </div>
+        <div class="ch-action-row">
+          <button class="ch-print-btn" onclick="printChambre('${id}')">🖨️ Imprimer fiche</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  return filterBtns + `<div class="ch-grid">${cards||'<div style="text-align:center;padding:20px;color:var(--muted)">Aucune chambre dans ce filtre.</div>'}</div>`;
+}
+
+/* ── Render classement chambres ── */
+function renderChClassement() {
+  const sorted = Object.entries(CH).map(([id,c])=>({id,...c,score:chambreScore(id)}))
+    .sort((a,b)=>b.score-a.score);
+
+  const COLORS = ['#f59e0b','#9ca3af','#cd7c2d','#6366f1','#10b981'];
+  const medals = ['🥇','🥈','🥉'];
+  const maxScore = NB_JOURS * CRITERES.length;
+
+  const items = sorted.map((c,i)=>{
+    const col = c.genre==='G'?'#3b82f6':'#ec4899';
+    const rank = i+1;
+    const rankHtml = rank<=3?medals[rank-1]:rank;
+    const sc = c.score>0?'pos':'z';
+    const progW = Math.round(c.score/maxScore*100);
+    return `<div class="ch-rank-card" style="border-color:${col}">
+      <div class="ch-rank-pos" style="background:${col}">${rankHtml}</div>
+      <div class="ch-rank-info">
+        <div class="ch-rank-nom">${c.genre==='G'?'🔵':'🩷'} ${esc(c.nom)}</div>
+        <div style="margin-top:6px;background:var(--bg);border-radius:20px;height:6px;overflow:hidden">
+          <div style="width:${progW}%;height:100%;background:${col};border-radius:20px;transition:width .4s"></div>
+        </div>
+        <div class="ch-rank-sub">${progW}% — ${c.score} pts sur ${maxScore}</div>
+      </div>
+      <div class="ch-rank-total ${sc}">${c.score}</div>
+    </div>`;
+  }).join('');
+
+  return `<div class="ch-rank-grid">${items||'<div style="text-align:center;padding:20px;color:var(--muted)">Aucun point attribué.</div>'}</div>`;
+}
+
+/* ── Render admin chambres ── */
+function renderChAdmin() {
+  const allCh = Object.entries(CH).sort((a,b)=>a[0].localeCompare(b[0]));
+
+  // Étudiants non assignés
+  const usedIds = new Set(Object.values(CH).flatMap(c=>c.eleves||[]));
+  const unassG = ALL.filter(e=>e.s==='G'&&!usedIds.has(e.id));
+  const unassF = ALL.filter(e=>e.s==='F'&&!usedIds.has(e.id));
+
+  const rooms = allCh.map(([id,c])=>{
+    const eleves = (c.eleves||[]).map(eid=>EM[eid]).filter(Boolean);
+    const genreMatch = c.genre==='G'?'G':'F';
+    const unassMatching = genreMatch==='G'?unassG:unassF;
+    const col = c.genre==='G'?'#3b82f6':'#ec4899';
+    const elevesList = eleves.map(e=>`
+      <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--bg)">
+        <span class="ch-e ${e.s}" style="flex:1">${e.s==='G'?'♂':'♀'} ${esc(e.p)} ${esc(e.n)} <span style="font-size:9px;opacity:.7">${e.c}</span></span>
+        <button style="border:none;background:none;color:var(--red);cursor:pointer;font-size:16px;padding:0 4px;font-weight:900" onclick="rmFromChambre('${id}','${e.id}')" title="Retirer">✕</button>
+      </div>`).join('');
+    const addOpts = unassMatching.map(e=>`<option value="${e.id}">${e.p} ${e.n} (${e.c})</option>`).join('');
+    return `<div class="ch-admin-sect" style="border-left:4px solid ${col}">
+      <div class="ch-admin-title">${c.genre==='G'?'🔵':'🩷'} ${esc(c.nom)} <span style="font-weight:400;color:var(--muted);font-size:11px">${eleves.length}/${c.capacite} élèves</span></div>
+      ${elevesList||'<div style="font-size:12px;color:var(--muted);font-style:italic;margin-bottom:6px">Vide</div>'}
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <select id="cha-${id}" style="flex:1;padding:7px;border:1.5px solid var(--border);border-radius:8px;font-size:12px">
+          <option value="">+ Ajouter ${c.genre==='G'?'un garçon':'une fille'}…</option>
+          ${addOpts||'<option disabled>Aucun élève disponible</option>'}
+        </select>
+        <button onclick="addToChambre('${id}','${c.genre}')" style="padding:7px 12px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:12px">+</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  const unassHtml = (unassG.length||unassF.length)?`
+    <div class="ch-admin-sect" style="border-left:4px solid var(--red)">
+      <div class="ch-admin-title" style="color:var(--red)">⚠️ Élèves non assignés (${unassG.length+unassF.length})</div>
+      ${unassG.map(e=>`<span class="ch-e G" style="margin:2px">${esc(e.p)} ${e.c}</span>`).join('')}
+      ${unassF.map(e=>`<span class="ch-e F" style="margin:2px">${esc(e.p)} ${e.c}</span>`).join('')}
+    </div>`:'';
+
+  return `
+    <div style="background:var(--card);border-radius:var(--r);padding:14px;box-shadow:var(--sh);margin-bottom:12px">
+      <div style="font-size:13px;font-weight:800;margin-bottom:10px">🖨️ Impression globale</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="ch-print-btn" style="flex:1;min-width:120px" onclick="printAllCh()">Toutes les chambres</button>
+        <button class="ch-print-btn" style="flex:1;min-width:120px" onclick="printAllCh('G')">♂ Garçons</button>
+        <button class="ch-print-btn" style="flex:1;min-width:120px" onclick="printAllCh('F')">♀ Filles</button>
+      </div>
+    </div>
+    <div style="background:var(--card);border-radius:var(--r);padding:14px;box-shadow:var(--sh);margin-bottom:12px">
+      <div style="font-size:13px;font-weight:800;margin-bottom:10px">🔀 Rémélanger les chambres</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">Les binômes restent ensemble. Les classes sont mélangées. Garçons et filles séparés.</p>
+      <button class="btn btn-p" style="width:100%;justify-content:center" onclick="shuffleCh()">🔀 Nouveau tirage aléatoire</button>
+    </div>
+    ${unassHtml}
+    ${rooms}`;
+}
+
+/* ── Toggle critère ── */
+window.toggleCrit = async (chambreId, jour, critIdx) => {
+  const path = `sejour/chambre_checks/${chambreId}/j${jour}/c${critIdx}`;
+  const cur = ((CK[chambreId]||{})[`j${jour}`]||{})[`c${critIdx}`] || false;
+  await set(ref(db, path), !cur);
+};
+
+/* ── Shuffle chambres ── */
+window.shuffleCh = async () => {
+  if(!confirm('Effectuer un nouveau tirage aléatoire ?\nLes binômes restent ensemble. Les scores ne seront pas perdus.')) return;
+  const rooms = generateShuffle();
+  await applyNewRepartition(rooms);
+  toast('🔀 Chambres remélangées !','ok');
+};
+
+/* ── Init depuis l'appli ── */
+window.initChambresSiVide = () => initChambresSiVide();
+
+/* ── Add/Remove élève dans chambre ── */
+window.addToChambre = async (chambreId, genre) => {
+  const sel = G(`cha-${chambreId}`);
+  if(!sel?.value) return;
+  const eid = sel.value;
+  const eleve = EM[eid]; if(!eleve) return;
+  // Vérif genre
+  if(eleve.s !== genre){ toast('Genre incompatible avec cette chambre ❌','err'); return; }
+  // Retire de l'ancienne chambre si besoin
+  const upd = {};
+  Object.entries(CH).forEach(([cid,c])=>{
+    if(c.eleves?.includes(eid)){
+      upd[`sejour/chambres/${cid}/eleves`] = (c.eleves||[]).filter(x=>x!==eid);
+    }
+  });
+  const cur = CH[chambreId]?.eleves||[];
+  upd[`sejour/chambres/${chambreId}/eleves`] = [...cur, eid];
+  await update(ref(db), upd);
+  toast(`${eleve.p} ajouté(e) ✓`,'ok');
+};
+
+window.rmFromChambre = async (chambreId, eid) => {
+  const c = CH[chambreId]; if(!c) return;
+  await update(ref(db,`sejour/chambres/${chambreId}`),{eleves:(c.eleves||[]).filter(x=>x!==eid)});
+  toast('Élève retiré(e)');
+};
+
+/* ── Navigation ── */
+window.setChTab = t => { chTab=t; rChambres(); };
+window.setChFilter = f => { chFilter=f; rChambres(); };
+window.toggleCh = id => { if(openCh.has(id)) openCh.delete(id); else openCh.add(id); rChambres(); };
+window.setChDay = (id,j) => { chActiveDays[id]=j; rChambres(); };
+
+/* ── Impression fiche chambre ── */
+window.printChambre = (chambreId) => {
+  const c = CH[chambreId]; if(!c) return;
+  const eleves = (c.eleves||[]).map(id=>EM[id]).filter(Boolean);
+  const dayHeaders = Array.from({length:NB_JOURS},(_,i)=>`<th class="check-cell">J${i+1}</th>`).join('');
+  const totalHeaders = Array.from({length:NB_JOURS},(_,i)=>{
+    const s = chambreScoreJour(chambreId,i+1);
+    return `<td class="check-cell" style="font-weight:900">${s}</td>`;
+  }).join('');
+
+  const rows = CRITERES.map((cr,ci)=>{
+    const cells = Array.from({length:NB_JOURS},(_,j)=>{
+      const checked = !!((CK[chambreId]||{})[`j${j+1}`]||{})[`c${ci}`];
+      return `<td class="check-cell">${checked?'✅':''}</td>`;
+    }).join('');
+    return `<tr><td class="crit-label">${cr.ico} ${cr.txt}</td>${cells}</tr>`;
+  }).join('');
+
+  const badges = eleves.map(e=>`<span class="print-eleve-badge ${e.s}">${e.s==='G'?'♂':'♀'} ${e.p} ${e.n} (${e.c})</span>`).join('');
+
+  G('print-area').innerHTML = `<div class="print-sheet">
+    <div class="print-header">
+      <div class="print-title">🛏️ ${c.nom}</div>
+      <div class="print-sejour">Séjour Cohésion Montagne · Yves du Manoir · 2025</div>
+    </div>
+    <div class="print-eleves-row"><strong>Élèves :</strong> ${badges}</div>
+    <table class="print-table">
+      <thead><tr><th>Critère</th>${dayHeaders}</tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr class="total-row"><td class="crit-label">📊 Total du jour</td>${totalHeaders}</tr></tfoot>
+    </table>
+    <div class="print-sign">Score total : ${chambreScore(chambreId)} / ${NB_JOURS*CRITERES.length} pts · Imprimé le ${new Date().toLocaleDateString('fr-FR')}</div>
+  </div>`;
+  window.print();
+};
+
+/* ─── Print toutes les chambres ─── */
+window.printAllCh = (genre=null) => {
+  const items = Object.entries(CH)
+    .filter(([,c])=>!genre||c.genre===genre)
+    .sort((a,b)=>a[0].localeCompare(b[0]));
+  G('print-area').innerHTML = items.map(([id,c])=>{
+    const eleves = (c.eleves||[]).map(eid=>EM[eid]).filter(Boolean);
+    const dayHeaders = Array.from({length:NB_JOURS},(_,i)=>`<th class="check-cell">J${i+1}</th>`).join('');
+    const totalHeaders = Array.from({length:NB_JOURS},(_,i)=>{
+      return `<td class="check-cell" style="font-weight:900">${chambreScoreJour(id,i+1)}</td>`;
+    }).join('');
+    const rows = CRITERES.map((cr,ci)=>{
+      const cells = Array.from({length:NB_JOURS},(_,j)=>{
+        const checked = !!((CK[id]||{})[`j${j+1}`]||{})[`c${ci}`];
+        return `<td class="check-cell">${checked?'✅':''}</td>`;
+      }).join('');
+      return `<tr><td class="crit-label">${cr.ico} ${cr.txt}</td>${cells}</tr>`;
+    }).join('');
+    const badges = eleves.map(e=>`<span class="print-eleve-badge ${e.s}">${e.s==='G'?'♂':'♀'} ${e.p} ${e.n} (${e.c})</span>`).join('');
+    return `<div class="print-sheet">
+      <div class="print-header">
+        <div class="print-title">🛏️ ${c.nom}</div>
+        <div class="print-sejour">Séjour Cohésion Montagne · Yves du Manoir · 2025</div>
+      </div>
+      <div class="print-eleves-row"><strong>Élèves :</strong> ${badges}</div>
+      <table class="print-table">
+        <thead><tr><th>Critère</th>${dayHeaders}</tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr class="total-row"><td class="crit-label">📊 Total</td>${totalHeaders}</tr></tfoot>
+      </table>
+      <div class="print-sign">Score total : ${chambreScore(id)} / ${NB_JOURS*CRITERES.length} pts · ${new Date().toLocaleDateString('fr-FR')}</div>
+    </div>`;
+  }).join('');
+  window.print();
+};
+
 /* ═══ TOAST ═══ */
 function toast(msg,type='') {
   const t=G('toast');
@@ -1045,6 +1615,9 @@ try {
 } catch(e){}
 
 </script>
+
+<!-- PRINT AREA -->
+<div id="print-area"></div>
 
 <!-- ═══════ FOOTER ═══════ -->
 <footer style="text-align:center;padding:12px 16px 4px;font-size:11px;color:var(--muted)">
