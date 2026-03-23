@@ -648,7 +648,14 @@ function startApp() {
   const u3 = onValue(ref(db,'sejour/regles'), s=>{ RG=s.val()||{}; rc(); });
   const u4 = onValue(ref(db,'sejour/passwords'), s=>{ PW=s.val()||{}; if(panelAct==='admin')rAdmin(); });
   const u5 = onValue(ref(db,'sejour/chambres'), s=>{ CH=s.val()||{}; rc(); });
-  const u6 = onValue(ref(db,'sejour/chambre_checks'), s=>{ CK=s.val()||{}; rc(); });
+  const u6 = onValue(ref(db,'sejour/chambre_checks'), s=>{
+    CK = s.val()||{};
+    rc();
+    // Si un autre appareil a modifié les checks, rafraîchir aussi classement/points
+    // même s'ils ne sont pas le panel actif (scores dynamiques impactés)
+    if(panelAct !== 'classement' && G('cl-content')) rClass();
+    if(panelAct !== 'attribuer'  && G('at-content')) rAttr();
+  });
   lsns = [u1,u2,u3,u4,u5,u6];
   showPanel('classement');
 }
@@ -1579,7 +1586,25 @@ window.saveChambreNom = async (id) => {
 window.toggleCrit = async (chambreId, jour, critIdx) => {
   const path = `sejour/chambre_checks/${chambreId}/j${jour}/c${critIdx}`;
   const cur = ((CK[chambreId]||{})[`j${jour}`]||{})[`c${critIdx}`] || false;
-  await set(ref(db, path), !cur);
+  const newVal = !cur;
+
+  // ── Mise à jour locale IMMÉDIATE (optimiste) ──
+  if(!CK[chambreId]) CK[chambreId] = {};
+  if(!CK[chambreId][`j${jour}`]) CK[chambreId][`j${jour}`] = {};
+  CK[chambreId][`j${jour}`][`c${critIdx}`] = newVal;
+
+  // Rafraîchit tous les panels qui dépendent des points chambre
+  rChambres();                                     // vue chambres active
+  if(panelAct === 'classement') rClass();          // classement équipes si actif
+  if(panelAct === 'attribuer')  rAttr();           // panel points si actif
+
+  // ── Persistance Firebase en arrière-plan ──
+  set(ref(db, path), newVal).catch(err => {
+    // En cas d'échec, on rollback localement
+    CK[chambreId][`j${jour}`][`c${critIdx}`] = cur;
+    rChambres();
+    toast('Erreur réseau, réessaie ❌', 'err');
+  });
 };
 
 /* ── Shuffle chambres ── */
