@@ -398,6 +398,9 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
     <h3>🏔️ Nouvelle équipe</h3>
     <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px">NOM DE L'ÉQUIPE</label>
     <input class="fi" id="eq-inp" placeholder="Ex : Les Chamois, Les Bouquetins…"
+      onkeydown="if(event.key==='Enter')G('eq-resp').focus()">
+    <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin:10px 0 6px">PROFESSEUR RESPONSABLE</label>
+    <input class="fi" id="eq-resp" placeholder="Ex : M. Eude, Mme Acquier…"
       onkeydown="if(event.key==='Enter')saveNewTeam()">
     <div class="mo-btns">
       <button class="btn btn-ghost" onclick="closeMo('mo-eq')">Annuler</button>
@@ -409,8 +412,12 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
 <!-- MODAL RENOMMER ÉQUIPE -->
 <div class="mo" id="mo-ren" onclick="if(event.target===this)closeMo('mo-ren')">
   <div class="moc">
-    <h3>✏️ Renommer l'équipe</h3>
+    <h3>✏️ Modifier l'équipe</h3>
+    <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin-bottom:6px">NOM DE L'ÉQUIPE</label>
     <input class="fi" id="ren-inp" placeholder="Nouveau nom…"
+      onkeydown="if(event.key==='Enter')G('ren-resp').focus()">
+    <label style="font-size:12px;font-weight:700;color:var(--muted);display:block;margin:10px 0 6px">PROFESSEUR RESPONSABLE</label>
+    <input class="fi" id="ren-resp" placeholder="Ex : M. Eude, Mme Acquier…"
       onkeydown="if(event.key==='Enter')saveRename()">
     <div class="mo-btns">
       <button class="btn btn-ghost" onclick="closeMo('mo-ren')">Annuler</button>
@@ -844,6 +851,7 @@ function rClass() {
         <div class="tc-rank" style="background:${col}">${rankHtml}</div>
         <div class="tc-info">
           <div class="tc-name">${esc(t.nom)}</div>
+          ${t.responsable?`<div style="font-size:11px;color:var(--muted);font-weight:600;margin-bottom:1px">👤 ${esc(t.responsable)}</div>`:''}
           <div class="tc-sub">
             ${elevs.length} élève${elevs.length!==1?'s':''}
             ${(()=>{
@@ -911,6 +919,7 @@ function rAttr() {
       onclick="pickTeam('${t.id}')">
       <div style="width:10px;height:10px;border-radius:50%;background:${c};margin:0 auto 4px"></div>
       <div class="tsel-name">${esc(t.nom)}</div>
+      ${t.responsable?`<div style="font-size:9px;color:var(--muted);font-weight:600;margin-bottom:2px">👤 ${esc(t.responsable)}</div>`:''}
       <div class="tsel-pts" style="color:${c}">${pts>0?'+':''}${pts}</div>
       ${elevStr ? `<div style="font-size:9px;color:var(--muted);line-height:1.5;margin-top:3px;word-break:break-word">${elevStr}</div>` : ''}
     </div>`;
@@ -1010,7 +1019,10 @@ function aEquipes() {
     return `<div class="eqa ${isOpen?'open':''}" style="border-color:${col}">
       <div class="eqa-head" onclick="togAdm('${t.id}')">
         <div class="eqa-ball" style="background:${col}"></div>
-        <div class="eqa-name">${esc(t.nom)}</div>
+        <div style="flex:1;min-width:0">
+          <div class="eqa-name">${esc(t.nom)}</div>
+          ${t.responsable?`<div style="font-size:11px;color:var(--muted);font-weight:600">👤 ${esc(t.responsable)}</div>`:''}
+        </div>
         <div class="eqa-cnt">${elevs.length} élève${elevs.length!==1?'s':''} · ${t.points||0}pts activités${chambreBonusForTeam(t.id)>0?` + 🛏️${chambreBonusForTeam(t.id)}`:''}= ${totalPts(t.id)}pts</div>
         <div class="eqa-arr">▼</div>
       </div>
@@ -1030,7 +1042,7 @@ function aEquipes() {
           <button onclick="addToTeam('${t.id}')">+</button>
         </div>
         <div style="display:flex;gap:6px;margin-top:10px">
-          <button class="btn btn-sm btn-ghost" style="border:1.5px solid var(--border)" onclick="openRename('${t.id}','${esc(t.nom)}')">✏️ Renommer</button>
+          <button class="btn btn-sm btn-ghost" style="border:1.5px solid var(--border)" onclick="openRename('${t.id}','${esc(t.nom)}','${esc(t.responsable||'')}')">✏️ Modifier</button>
           <button class="btn btn-sm btn-r" onclick="delTeam('${t.id}')">🗑️ Supprimer</button>
         </div>
       </div>
@@ -1079,22 +1091,26 @@ window.openNewTeam = () => { G('eq-inp').value=''; G('mo-eq').classList.add('ope
 window.closeMo = id => G(id).classList.remove('open');
 window.saveNewTeam = async () => {
   const nom = G('eq-inp').value.trim(); if(!nom) return;
+  const responsable = G('eq-resp')?.value?.trim() || '';
   const colorIdx = Object.keys(EQ).length;
-  await push(ref(db,'sejour/equipes'),{nom,eleves:[],points:0,colorIdx});
+  await push(ref(db,'sejour/equipes'),{nom,responsable,eleves:[],points:0,colorIdx});
   closeMo('mo-eq');
   toast(`"${nom}" créée ✓`,'ok');
 };
 
-window.openRename = (id,nom) => {
-  renameId=id; G('ren-inp').value=nom;
+window.openRename = (id,nom,resp) => {
+  renameId=id;
+  G('ren-inp').value=nom;
+  if(G('ren-resp')) G('ren-resp').value=resp||'';
   G('mo-ren').classList.add('open');
   setTimeout(()=>{ G('ren-inp').focus(); G('ren-inp').select(); },80);
 };
 window.saveRename = async () => {
   const nom = G('ren-inp').value.trim(); if(!nom||!renameId) return;
-  await update(ref(db,`sejour/equipes/${renameId}`),{nom});
+  const responsable = G('ren-resp')?.value?.trim() || '';
+  await update(ref(db,`sejour/equipes/${renameId}`),{nom,responsable});
   closeMo('mo-ren'); renameId=null;
-  toast('Équipe renommée ✓','ok');
+  toast('Équipe modifiée ✓','ok');
 };
 
 /* ── Admin Règles ── */
