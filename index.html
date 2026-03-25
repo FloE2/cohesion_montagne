@@ -1513,12 +1513,13 @@ function renderChAdmin() {
       </div>`).join('');
     const addOpts = unassMatching.map(e=>`<option value="${e.id}">${e.p} ${e.n} (${e.c})</option>`).join('');
     return `<div class="ch-admin-sect" style="border-left:4px solid ${col}">
-      <!-- Titre + bouton renommer -->
+      <!-- Titre + bouton renommer + bouton supprimer -->
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <span>${c.genre==='G'?'🔵':'🩷'}</span>
         <div id="ch-nom-disp-${id}" style="flex:1;font-size:13px;font-weight:800">${esc(c.nom)}</div>
         <span style="font-size:11px;font-weight:400;color:var(--muted)">${eleves.length}/${c.capacite}</span>
         <button onclick="startRenameCh('${id}')" title="Renommer" style="border:none;background:var(--bg);border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;color:var(--muted)">✏️</button>
+        <button onclick="deleteChambre('${id}')" title="Supprimer" style="border:none;background:#fee2e2;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:12px;color:var(--red)">🗑️</button>
       </div>
       <!-- Zone de renommage (masquée) -->
       <div id="ch-rename-zone-${id}" style="display:none;margin-bottom:8px">
@@ -1564,9 +1565,58 @@ function renderChAdmin() {
       <p style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.5">Les binômes restent ensemble. Les classes sont mélangées. Garçons et filles séparés.</p>
       <button class="btn btn-p" style="width:100%;justify-content:center" onclick="shuffleCh()">🔀 Nouveau tirage aléatoire</button>
     </div>
+    <div style="background:var(--card);border-radius:var(--r);padding:14px;box-shadow:var(--sh);margin-bottom:12px">
+      <div style="font-size:13px;font-weight:800;margin-bottom:12px">🛏️ Créer une nouvelle chambre</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <input id="new-ch-nom" placeholder="Nom de la chambre (ex: Chalet Aigle)" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;width:100%">
+        <div style="display:flex;gap:8px">
+          <select id="new-ch-genre" style="flex:1;padding:9px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+            <option value="G">♂ Garçons</option>
+            <option value="F">♀ Filles</option>
+          </select>
+          <select id="new-ch-cap" style="flex:1;padding:9px;border:1.5px solid var(--border);border-radius:8px;font-size:13px">
+            <option value="2">2 places</option>
+            <option value="3">3 places</option>
+            <option value="4" selected>4 places</option>
+            <option value="5">5 places</option>
+            <option value="6">6 places</option>
+            <option value="8">8 places</option>
+          </select>
+        </div>
+        <button class="btn btn-p" style="width:100%;justify-content:center" onclick="createChambre()">➕ Créer la chambre</button>
+      </div>
+    </div>
     ${unassHtml}
     ${rooms}`;
 }
+
+/* ── Créer une chambre ── */
+window.createChambre = async () => {
+  const nom   = G('new-ch-nom')?.value?.trim();
+  const genre = G('new-ch-genre')?.value || 'G';
+  const cap   = parseInt(G('new-ch-cap')?.value || '4');
+  if(!nom){ toast('Donne un nom à la chambre ❌','err'); return; }
+  // Génère une clé unique
+  const key = 'ch_' + Date.now();
+  await set(ref(db, `sejour/chambres/${key}`), {nom, genre, capacite:cap, eleves:[]});
+  if(G('new-ch-nom')) G('new-ch-nom').value = '';
+  toast(`🛏️ "${nom}" créée ✓`, 'ok');
+};
+
+/* ── Supprimer une chambre ── */
+window.deleteChambre = async (id) => {
+  const c = CH[id]; if(!c) return;
+  const nb = (c.eleves||[]).length;
+  const msg = nb > 0
+    ? `Supprimer "${c.nom}" ?\n⚠️ ${nb} élève${nb>1?'s':''} seront non assignés.`
+    : `Supprimer "${c.nom}" ?`;
+  if(!confirm(msg)) return;
+  const upd = {};
+  upd[`sejour/chambres/${id}`] = null;
+  upd[`sejour/chambre_checks/${id}`] = null; // supprime aussi les scores
+  await update(ref(db), upd);
+  toast(`"${c.nom}" supprimée`);
+};
 
 /* ── Renommer une chambre ── */
 window.startRenameCh = (id) => {
