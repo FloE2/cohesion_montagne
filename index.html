@@ -1494,14 +1494,27 @@ function renderChClassement() {
 
 /* ── Render admin chambres ── */
 function renderChAdmin() {
-  const allCh = Object.entries(CH).sort((a,b)=>a[0].localeCompare(b[0]));
+  // Garçons d'abord, puis Filles, puis tri alphabétique de la clé
+  const allCh = Object.entries(CH).sort((a,b)=>{
+    if(a[1].genre !== b[1].genre) return a[1].genre==='G' ? -1 : 1;
+    return a[0].localeCompare(b[0]);
+  });
 
   // Étudiants non assignés
   const usedIds = new Set(Object.values(CH).flatMap(c=>c.eleves||[]));
   const unassG = ALL.filter(e=>e.s==='G'&&!usedIds.has(e.id));
   const unassF = ALL.filter(e=>e.s==='F'&&!usedIds.has(e.id));
 
+  let lastGenre = null;
   const rooms = allCh.map(([id,c])=>{
+    let sectionHeader = '';
+    if(c.genre !== lastGenre) {
+      lastGenre = c.genre;
+      const borderStyle = lastGenre === 'F' ? 'border-top:2px solid var(--bg);margin-top:16px;padding-top:4px' : '';
+      sectionHeader = `<div style="font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:${c.genre==='G'?'#3b82f6':'#ec4899'};padding:8px 0 6px;${borderStyle}">
+        ${c.genre==='G'?'🔵 Garçons':'🩷 Filles'}
+      </div>`;
+    }
     const eleves = (c.eleves||[]).map(eid=>EM[eid]).filter(Boolean);
     const genreMatch = c.genre==='G'?'G':'F';
     const unassMatching = genreMatch==='G'?unassG:unassF;
@@ -1512,7 +1525,7 @@ function renderChAdmin() {
         <button style="border:none;background:none;color:var(--red);cursor:pointer;font-size:16px;padding:0 4px;font-weight:900" onclick="rmFromChambre('${id}','${e.id}')" title="Retirer">✕</button>
       </div>`).join('');
     const addOpts = unassMatching.map(e=>`<option value="${e.id}">${e.p} ${e.n} (${e.c})</option>`).join('');
-    return `<div class="ch-admin-sect" style="border-left:4px solid ${col}">
+    return sectionHeader + `<div class="ch-admin-sect" style="border-left:4px solid ${col}">
       <!-- Titre + bouton renommer + bouton supprimer -->
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
         <span>${c.genre==='G'?'🔵':'🩷'}</span>
