@@ -1324,13 +1324,36 @@ function aEquipes() {
     👥 <strong>${unass.length} élève${unass.length!==1?'s':''} non assigné${unass.length!==1?'s':''}</strong>
     sur ${ALL.length} · ${teams.length} équipe${teams.length!==1?'s':''}
   </div>
-  <button class="btn btn-p" style="width:100%;justify-content:center;margin-bottom:14px" onclick="openNewTeam()">
-    🏔️ Créer une nouvelle équipe
-  </button>
+  <div style="display:flex;gap:8px;margin-bottom:14px">
+    <button class="btn btn-p" style="flex:1;justify-content:center" onclick="openNewTeam()">
+      🏔️ Créer une équipe
+    </button>
+    <button onclick="resetAllScores()" style="padding:10px 14px;background:#fee2e2;color:var(--red);
+      border:1.5px solid #fca5a5;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;flex-shrink:0">
+      🔄 Remise à zéro
+    </button>
+  </div>
   ${teams.length ? items : '<div class="empty"><div class="em">🏔️</div><p>Aucune équipe.<br>Créez-en une !</p></div>'}`;
 }
 
 window.togAdm = id => { openAdm = openAdm===id?null:id; rAdmin(); };
+
+window.resetAllScores = async () => {
+  const nb = Object.keys(EQ).length;
+  if(!nb){ toast('Aucune équipe à réinitialiser','err'); return; }
+  if(!confirm(`⚠️ Remettre à zéro les points des ${nb} équipes ?\n\nCela effacera aussi tout l'historique des points.\nLes scores de chambre ne sont pas affectés.`)) return;
+  const upd = {};
+  Object.keys(EQ).forEach(id => {
+    upd[`sejour/equipes/${id}/points`] = 0;
+  });
+  upd[`sejour/historique`] = null; // efface tout l'historique
+  // Mise à jour locale immédiate
+  Object.keys(EQ).forEach(id => { EQ[id].points = 0; });
+  HI = {};
+  rClass(); rAdmin();
+  await update(ref(db), upd).catch(()=>{ toast('Erreur réseau ❌','err'); });
+  toast(`🔄 Scores remis à zéro pour ${nb} équipe${nb>1?'s':''}`, 'ok');
+};
 
 window.addToTeam = async id => {
   const sel = G(`as-${id}`); if(!sel?.value) return;
