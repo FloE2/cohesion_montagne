@@ -225,6 +225,27 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
 .empty p{font-size:14px;line-height:1.6}
 .sep{border:none;border-top:1.5px solid var(--border);margin:12px 0}
 .me-tag{font-size:11px;background:#eff6ff;color:var(--primary);padding:3px 8px;border-radius:10px;font-weight:700;margin-left:4px}
+/* Mode toggle Points */
+.mode-toggle{display:flex;background:var(--bg);border-radius:12px;padding:4px;gap:4px;margin-bottom:14px}
+.mode-btn{flex:1;padding:9px;border:none;border-radius:9px;font-size:13px;font-weight:700;
+  cursor:pointer;background:none;color:var(--muted);transition:all .15s}
+.mode-btn.active{background:var(--card);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+/* Recherche élève */
+.eleve-search{width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:12px;
+  font-size:15px;outline:none;margin-bottom:10px;transition:border-color .2s}
+.eleve-search:focus{border-color:var(--primary)}
+.eleve-results{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;max-height:280px;overflow-y:auto}
+.eleve-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;
+  border:1.5px solid var(--border);cursor:pointer;background:var(--card);transition:all .15s}
+.eleve-row:hover,.eleve-row.sel{border-color:var(--primary);background:#eff6ff}
+.eleve-row.sel{box-shadow:0 0 0 3px rgba(26,115,232,.15)}
+.eleve-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:13px;font-weight:900;flex-shrink:0}
+.eleve-dot.G{background:#dbeafe;color:#1d4ed8}.eleve-dot.F{background:#fce7f3;color:#9d174d}
+.eleve-info{flex:1;min-width:0}
+.eleve-nom{font-size:14px;font-weight:800}
+.eleve-team{font-size:11px;color:var(--muted);margin-top:1px}
+.eleve-no-team{font-size:11px;color:var(--red);margin-top:1px;font-style:italic}
 @media(max-width:380px){.pts-row{gap:6px}.pbtn{padding:14px 6px;font-size:18px}.tgrid{gap:6px}}
 /* ═══ CHAMBRES ═══ */
 .ch-tabs{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px}
@@ -578,6 +599,9 @@ let openAdm = null;
 let renameId = null;
 let toastTm;
 let chTab = 'rooms';    // 'rooms' | 'classement' | 'admin'
+let attrMode = 'equipe'; // 'equipe' | 'eleve'
+let selEleve = null;
+let eleveSearch = '';
 let chFilter = 'all';   // 'all' | 'G' | 'F'
 let openCh = new Set();
 let chActiveDays = {};  // chambreId -> jour actif
@@ -830,7 +854,7 @@ function rClass() {
             <div class="hd" style="background:${h.userColor}" title="${esc(h.userPrenom)}"></div>
             <div class="hv ${h.delta>0?'p':'m'}">${h.delta>0?'+':''}${h.delta}</div>
             <div class="htx">
-              <div class="hrg">${esc(h.regle||'Points libres')}</div>
+              <div class="hrg">${h.eleveNom?`<span style="background:#eff6ff;color:var(--primary);border-radius:6px;padding:1px 6px;font-size:11px;font-weight:700;margin-right:4px">👤 ${esc(h.eleveNom)}</span>`:''}${esc(h.regle||'Points libres')}</div>
               <div class="hmt">${esc(h.userPrenom)} · ${tAgo(h.ts)}</div>
             </div>
             ${delBtn}
@@ -901,10 +925,29 @@ function rAttr() {
     return;
   }
 
+  const toggle = `<div class="mode-toggle">
+    <button class="mode-btn ${attrMode==='equipe'?'active':''}" onclick="setAttrMode('equipe')">🏔️ Par équipe</button>
+    <button class="mode-btn ${attrMode==='eleve'?'active':''}" onclick="setAttrMode('eleve')">👤 Par élève</button>
+  </div>`;
+
+  let body = '';
+  if(attrMode === 'equipe') body = rAttrEquipe(teams);
+  else body = rAttrEleve(teams);
+
+  G('at-content').innerHTML = toggle + body;
+
+  // Restore search input value without losing focus
+  if(attrMode === 'eleve') {
+    const inp = G('eleve-search-inp');
+    if(inp){ inp.value = eleveSearch; }
+  }
+}
+
+/* ── Mode Équipe ── */
+function rAttrEquipe(teams) {
   const sel = selTeam ? teams.find(t=>t.id===selTeam) : null;
   const idx = sel ? teams.indexOf(sel) : -1;
   const col = sel ? teamColor(sel,idx) : '#999';
-
   const rgOpts = Object.entries(RG).map(([,r])=>
     `<option value="${esc(r.texte)}">${esc(r.texte)}</option>`).join('');
 
@@ -956,13 +999,141 @@ function rAttr() {
     </div>` : `<div class="notsel"><div class="em">👆</div>
       <p>Sélectionnez une équipe<br>pour lui attribuer des points</p></div>`;
 
-  G('at-content').innerHTML = `
-    <div class="attr-lbl" style="margin-bottom:8px">1. CHOISIR L'ÉQUIPE</div>
-    <div class="tgrid">${grid}</div>
-    ${form}`;
+  return `<div class="attr-lbl" style="margin-bottom:8px">1. CHOISIR L'ÉQUIPE</div>
+    <div class="tgrid">${grid}</div>${form}`;
 }
 
+/* ── Mode Élève ── */
+function rAttrEleve(teams) {
+  // Index élève → équipe
+  const elevTeamIdx = {};
+  teams.forEach(t=>(t.eleves||[]).forEach(eid=>{ elevTeamIdx[eid]=t; }));
+
+  const query = eleveSearch.toLowerCase().trim();
+  const filtered = query.length >= 1
+    ? ALL.filter(e=>(e.p+' '+e.n+' '+e.c).toLowerCase().includes(query))
+    : [];
+
+  const resultsHtml = query.length < 1
+    ? `<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">Tape au moins 1 lettre pour chercher un élève</div>`
+    : filtered.length === 0
+      ? `<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">Aucun élève trouvé pour "${esc(query)}"</div>`
+      : filtered.map(e=>{
+          const team = elevTeamIdx[e.id];
+          const col = team ? teamColor(team, teams.indexOf(team)) : null;
+          const isSel = selEleve === e.id;
+          return `<div class="eleve-row ${isSel?'sel':''}" onclick="pickEleve('${e.id}')">
+            <div class="eleve-dot ${e.s}">${e.s==='G'?'♂':'♀'}</div>
+            <div class="eleve-info">
+              <div class="eleve-nom">${esc(e.p)} ${esc(e.n)}</div>
+              ${team
+                ? `<div class="eleve-team"><span style="width:8px;height:8px;border-radius:50%;background:${col};display:inline-block;margin-right:4px"></span>${esc(team.nom)}${team.responsable?' · 👤 '+esc(team.responsable):''} · ${esc(e.c)}</div>`
+                : `<div class="eleve-no-team">⚠️ Sans équipe · ${esc(e.c)}</div>`}
+            </div>
+          </div>`;
+        }).join('');
+
+  // Fiche attribution si élève sélectionné
+  let formHtml = '';
+  if(selEleve) {
+    const e = EM[selEleve];
+    const team = elevTeamIdx[selEleve];
+    if(e && team) {
+      const col = teamColor(team, teams.indexOf(team));
+      const rgOpts = Object.entries(RG).map(([,r])=>
+        `<option value="${esc(r.texte)}">${esc(r.texte)}</option>`).join('');
+      formHtml = `
+        <div class="attr-lbl" style="margin-bottom:8px;margin-top:4px">ATTRIBUER DES POINTS</div>
+        <div class="sel-card" style="border-color:${col}">
+          <div style="width:14px;height:14px;border-radius:50%;background:${col};flex-shrink:0"></div>
+          <div style="flex:1">
+            <div class="sc-name">${esc(e.p)} ${esc(e.n)} <span style="font-size:12px;font-weight:600;color:var(--muted)">${e.c}</span></div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">Équipe : <strong style="color:${col}">${esc(team.nom)}</strong> · Total : <strong>${team.totalPts>0?'+':''}${team.totalPts} pts</strong></div>
+          </div>
+        </div>
+        <select class="rsel" id="rsel-eleve">
+          <option value="">✨ Points libres</option>
+          ${rgOpts}
+        </select>
+        <div>
+          <div class="pts-lbl" style="color:var(--green)">➕ AJOUTER</div>
+          <div class="pts-row">
+            ${[1,2,3].map(n=>`<button class="pbtn p" onclick="attribuerEleve(${n})">+${n}<span>pt${n>1?'s':''}</span></button>`).join('')}
+          </div>
+        </div>
+        <div>
+          <div class="pts-lbl" style="color:var(--red)">➖ RETIRER</div>
+          <div class="pts-row">
+            ${[1,2,3].map(n=>`<button class="pbtn m" onclick="attribuerEleve(-${n})">-${n}<span>pt${n>1?'s':''}</span></button>`).join('')}
+          </div>
+        </div>`;
+    } else if(e && !team) {
+      formHtml = `<div class="notsel" style="padding:16px"><div class="em">⚠️</div>
+        <p style="color:var(--red)">${esc(e.p)} n'est dans aucune équipe.<br>Assignez-le d'abord dans Admin.</p></div>`;
+    }
+  }
+
+  return `<div style="position:relative">
+    <input id="eleve-search-inp" class="eleve-search" placeholder="🔍 Chercher un élève (prénom, nom, classe…)"
+      oninput="onEleveSearch(this.value)" autocomplete="off" autocorrect="off" spellcheck="false">
+  </div>
+  <div class="eleve-results">${resultsHtml}</div>
+  ${formHtml}`;
+}
+
+
 window.pickTeam = id => { selTeam = id; rAttr(); };
+
+/* ── Mode toggle ── */
+window.setAttrMode = mode => {
+  attrMode = mode;
+  selTeam = null; selEleve = null; eleveSearch = '';
+  rAttr();
+  if(mode === 'eleve') setTimeout(()=>{ const i=G('eleve-search-inp'); if(i) i.focus(); },80);
+};
+
+/* ── Recherche élève ── */
+window.onEleveSearch = val => {
+  eleveSearch = val;
+  selEleve = null;
+  rAttr();
+  // Remettre le curseur à la fin sans perdre le focus
+  const inp = G('eleve-search-inp');
+  if(inp){ inp.value = val; inp.setSelectionRange(val.length, val.length); }
+};
+
+window.pickEleve = id => {
+  selEleve = selEleve === id ? null : id;
+  rAttr();
+  const inp = G('eleve-search-inp');
+  if(inp){ inp.value = eleveSearch; }
+};
+
+/* ── Attribuer points à un élève (→ équipe) ── */
+window.attribuerEleve = async delta => {
+  if(!selEleve) return;
+  const e = EM[selEleve]; if(!e) return;
+  // Trouver l'équipe de cet élève
+  const teamEntry = Object.entries(EQ).find(([,t])=>(t.eleves||[]).includes(selEleve));
+  if(!teamEntry){ toast(`${e.p} n'a pas d'équipe ❌`,'err'); return; }
+  const [teamId, t] = teamEntry;
+  const regle = G('rsel-eleve')?.value || '';
+  const label = `${e.p} ${e.n[0]}.`;
+  const newPts = (t.points||0) + delta;
+  const hKey = push(ref(db,'sejour/historique')).key;
+  const upd = {};
+  upd[`sejour/equipes/${teamId}/points`] = newPts;
+  upd[`sejour/historique/${hKey}`] = {
+    equipeId: teamId, equipeName: t.nom,
+    delta, regle: regle || `Points élève`,
+    eleveNom: label,
+    userId: cu.login, userPrenom: cu.prenom, userColor: cu.color,
+    ts: Date.now()
+  };
+  await update(ref(db), upd);
+  const sign = delta>0?'+':'';
+  toast(`${sign}${delta} pt${Math.abs(delta)>1?'s':''} → ${e.p} (${t.nom}) ✓`, delta>0?'ok':'');
+};
 
 window.attribuer = async delta => {
   if(!selTeam) return;
