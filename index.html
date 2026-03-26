@@ -781,6 +781,15 @@ const BRONZES = [
   { txt: "Quel est le plus grand défaut de Bernard ? — Il est égoïste. — Ça n'a rien à voir avec le ski.", perso: "Popeye, Nathalie & Bernard" },
 ];
 const randomBronzes = () => BRONZES[Math.floor(Math.random() * BRONZES.length)];
+
+window.toggleBronzes = () => {
+  const hidden = sessionStorage.getItem('hide_bronzes') === '1';
+  sessionStorage.setItem('hide_bronzes', hidden ? '0' : '1');
+  const zone = G('bronzes-quote');
+  const btn  = G('bronzes-toggle-btn');
+  if(zone) zone.style.display = hidden ? 'block' : 'none';
+  if(btn)  btn.textContent    = hidden ? '▼ Masquer' : '▶ Afficher';
+};
 function teamStats(id) {
   // Calcule les stats de départage depuis l'historique
   const hist = Object.values(HI).filter(h=>h.equipeId===id);
@@ -976,13 +985,19 @@ function rClass() {
   }).join('');
 
   const q = randomBronzes();
+  const hidden = sessionStorage.getItem('hide_bronzes') === '1';
   const quoteCard = `<div style="background:var(--card);border-radius:var(--r);box-shadow:var(--sh);
-    padding:12px 16px;margin-bottom:12px;border-left:4px solid #1a73e8;
-    display:flex;align-items:flex-start;gap:10px">
-    <span style="font-size:20px;flex-shrink:0">🎿</span>
-    <div>
+    padding:12px 16px;margin-bottom:12px;border-left:4px solid #1a73e8">
+    <div style="display:flex;align-items:center;gap:8px;cursor:pointer" onclick="toggleBronzes()">
+      <span style="font-size:18px;flex-shrink:0">🎿</span>
+      <span style="font-size:11px;font-weight:800;color:var(--primary);flex:1">Les Bronzés font du ski</span>
+      <button id="bronzes-toggle-btn" style="border:none;background:none;font-size:11px;color:var(--muted);cursor:pointer;padding:2px 6px;border-radius:6px;font-weight:700">
+        ${hidden ? '▶ Afficher' : '▼ Masquer'}
+      </button>
+    </div>
+    <div id="bronzes-quote" style="display:${hidden?'none':'block'};margin-top:8px;padding-top:8px;border-top:1px solid var(--bg)">
       <div style="font-size:13px;font-style:italic;color:var(--text);line-height:1.5">« ${esc(q.txt)} »</div>
-      <div style="font-size:11px;color:var(--muted);margin-top:5px;font-weight:700">— ${esc(q.perso)} · Les Bronzés font du ski</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:5px;font-weight:700">— ${esc(q.perso)}</div>
     </div>
   </div>`;
   G('cl-content').innerHTML = quoteCard + podHtml + `<div class="teams-list">${list}</div>`;}
