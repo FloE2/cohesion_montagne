@@ -2307,9 +2307,11 @@ function findTeamByNum(num) {
 
 /* ── Trouve l'équipe par nom de famille du prof ── */
 function findTeamByProf(nomFamille) {
+  const n = nomFamille.toUpperCase();
   return Object.entries(EQ).find(([,t])=>{
-    const r = (t.responsable||'').toUpperCase();
-    return r.includes(nomFamille.toUpperCase());
+    const r = (t.responsable||'').toUpperCase().trim();
+    // Correspondance exacte ou début du champ (ex: "EUDE Florian" commence par "EUDE")
+    return r === n || r.startsWith(n + ' ') || r.endsWith(' ' + n);
   });
 }
 
@@ -2468,18 +2470,27 @@ function renderJourneesMoi() {
 
 /* ───────────── HELPERS ───────────── */
 function getMyPlanInfo() {
-  // Trouve le profil du user dans le planning repas par son nom
   const myNomUp = cu.nom.toUpperCase();
-  const myPlanKey = Object.keys(PROF_PRENOM).find(k =>
-    myNomUp.includes(k.split(' ')[0]) || k.split(' ')[0].includes(myNomUp.split(' ')[0])
-  ) || null;
-  const myTeamEntry = myPlanKey ? findTeamByProf(myPlanKey) : null;
-  const myTeamNom   = myTeamEntry ? myTeamEntry[1].nom : (myPlanKey ? `Éq. ${myPlanKey}` : '');
-  const myTeamCol   = myTeamEntry ? teamColor({colorIdx:myTeamEntry[1].colorIdx}, Object.keys(EQ).indexOf(myTeamEntry[0])) : '#1a73e8';
-  // Extrait le numéro de l'équipe depuis le nom (ex: "Equipe 3" → 3)
-  const numMatch    = myTeamNom.match(/\d+/);
-  const myTeamNum   = numMatch ? parseInt(numMatch[0]) : null;
-  return { myPlanKey, myTeamNom, myTeamCol, myTeamNum };
+  // Cherche la clé PROF_PRENOM correspondant au nom de l'utilisateur connecté
+  // Correspondance stricte : la clé doit être égale au nom, ou le nom doit commencer par la clé
+  const myPlanKey = Object.keys(PROF_PRENOM).find(k => {
+    const kUp = k.toUpperCase();
+    return myNomUp === kUp || myNomUp.startsWith(kUp);
+  }) || null;
+
+  // Cherche l'équipe via le champ responsable OU via le login (plus fiable)
+  const loginNom = cu.login.split('.')[1]?.toUpperCase() || ''; // ex: "florian.eude" → "EUDE"
+  const myTeamEntry = Object.entries(EQ).find(([,t])=>{
+    const r = (t.responsable||'').toUpperCase().trim();
+    const key = (myPlanKey||loginNom).toUpperCase();
+    return r === key || r.startsWith(key + ' ') || r.endsWith(' ' + key);
+  });
+
+  const myTeamNom = myTeamEntry ? myTeamEntry[1].nom : (myPlanKey ? `Éq. ${myPlanKey}` : '');
+  const myTeamCol = myTeamEntry ? teamColor({colorIdx:myTeamEntry[1].colorIdx}, Object.keys(EQ).indexOf(myTeamEntry[0])) : '#1a73e8';
+  const numMatch  = myTeamNom.match(/\d+/);
+  const myTeamNum = numMatch ? parseInt(numMatch[0]) : null;
+  return { myPlanKey: myPlanKey||loginNom, myTeamNom, myTeamCol, myTeamNum };
 }
 
 function myBanner(nom, col) {
