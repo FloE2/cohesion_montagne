@@ -1659,15 +1659,16 @@ function chambreScore(chambreId) {
   for(let j=1;j<=NB_JOURS;j++) {
     const day = checks[`j${j}`] || {};
     CRITERES.forEach((_,ci)=>{ if(day[`c${ci}`]) total++; });
+    total += (day.bonus || 0);
   }
   return total;
 }
 function chambreScoreJour(chambreId, jour) {
   const day = (CK[chambreId]||{})[`j${jour}`]||{};
-  return CRITERES.filter((_,ci)=>day[`c${ci}`]).length;
+  return CRITERES.filter((_,ci)=>day[`c${ci}`]).length + (day.bonus || 0);
 }
 function chambreJourComplete(chambreId, jour) {
-  return chambreScoreJour(chambreId, jour) === CRITERES.length;
+  return chambreScoreJour(chambreId, jour) >= CRITERES.length;
 }
 
 /* ═══ RENDER CHAMBRES ═══ */
@@ -1771,9 +1772,28 @@ function renderChRooms() {
         <div class="day-check-zone">
           <div class="day-check-head">
             <span class="day-check-lbl">Jour ${activeDayForRoom}</span>
-            <span class="day-check-pts">${jourscore}/${CRITERES.length} ✓</span>
+            <span class="day-check-pts">${jourscore}/${CRITERES.length}${(day.bonus||0)>0?` +${day.bonus}⭐`:''} ✓</span>
           </div>
           ${criteresHtml}
+          <!-- Zone bonus -->
+          <div style="margin-top:10px;padding-top:10px;border-top:1.5px dashed var(--border)">
+            <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">⭐ Bonus libre</div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input id="bonus-raison-${id}-${activeDayForRoom}" type="text"
+                placeholder="Raison (ex: très bonne entente…)"
+                value="${esc((day.bonusRaison||''))}"
+                style="flex:1;min-width:120px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:12px"
+                oninput="updateBonusRaison('${id}',${activeDayForRoom},this.value)">
+              <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+                <button onclick="changeBonus('${id}',${activeDayForRoom},-1)"
+                  style="width:30px;height:30px;border-radius:8px;border:1.5px solid #fca5a5;background:#fee2e2;color:#b91c1c;font-size:16px;font-weight:900;cursor:pointer;line-height:1">−</button>
+                <span style="min-width:28px;text-align:center;font-size:18px;font-weight:900;color:var(--primary)">${day.bonus||0}</span>
+                <button onclick="changeBonus('${id}',${activeDayForRoom},1)"
+                  style="width:30px;height:30px;border-radius:8px;border:1.5px solid #86efac;background:#dcfce7;color:#15803d;font-size:16px;font-weight:900;cursor:pointer;line-height:1">+</button>
+              </div>
+            </div>
+            ${(day.bonus||0)>0||day.bonusRaison?`<div style="font-size:11px;color:var(--green);font-weight:700;margin-top:6px">⭐ +${day.bonus||0} pt${(day.bonus||0)>1?'s':''} · ${esc(day.bonusRaison||'Bonus')}</div>`:''}
+          </div>
         </div>
         <div class="ch-action-row">
           <button class="ch-print-btn" onclick="printChambre('${id}')">🖨️ Imprimer fiche</button>
@@ -1994,7 +2014,39 @@ window.toggleCrit = async (chambreId, jour, critIdx) => {
   });
 };
 
-/* ── Shuffle chambres ── */
+/* ── Modifier le bonus journalier ── */
+window.changeBonus = async (chambreId, jour, delta) => {
+  const day = (CK[chambreId]||{})[`j${jour}`]||{};
+  const cur = day.bonus || 0;
+  const newVal = Math.max(0, cur + delta); // ne peut pas descendre sous 0
+  const path = `sejour/chambre_checks/${chambreId}/j${jour}/bonus`;
+
+  // Mise à jour locale immédiate
+  if(!CK[chambreId]) CK[chambreId] = {};
+  if(!CK[chambreId][`j${jour}`]) CK[chambreId][`j${jour}`] = {};
+  CK[chambreId][`j${jour}`].bonus = newVal;
+  rChambres();
+  if(panelAct==='classement') rClass();
+  if(panelAct==='attribuer') rAttr();
+
+  set(ref(db, path), newVal).catch(()=>{
+    CK[chambreId][`j${jour}`].bonus = cur;
+    rChambres();
+    toast('Erreur réseau ❌','err');
+  });
+};
+
+/* ── Sauvegarder la raison du bonus (debounced) ── */
+const _bonusRaisonTimers = {};
+window.updateBonusRaison = (chambreId, jour, val) => {
+  if(!CK[chambreId]) CK[chambreId] = {};
+  if(!CK[chambreId][`j${jour}`]) CK[chambreId][`j${jour}`] = {};
+  CK[chambreId][`j${jour}`].bonusRaison = val;
+  clearTimeout(_bonusRaisonTimers[chambreId+jour]);
+  _bonusRaisonTimers[chambreId+jour] = setTimeout(()=>{
+    set(ref(db, `sejour/chambre_checks/${chambreId}/j${jour}/bonusRaison`), val).catch(()=>{});
+  }, 600);
+};
 window.shuffleCh = async () => {
   if(!confirm('Effectuer un nouveau tirage aléatoire ?\nLes binômes restent ensemble. Les scores ne seront pas perdus.')) return;
   const rooms = generateShuffle();
@@ -2045,7 +2097,9 @@ window.printChambre = (chambreId) => {
   const dayHeaders = Array.from({length:NB_JOURS},(_,i)=>`<th class="check-cell">J${i+1}</th>`).join('');
   const totalHeaders = Array.from({length:NB_JOURS},(_,i)=>{
     const s = chambreScoreJour(chambreId,i+1);
-    return `<td class="check-cell" style="font-weight:900">${s}</td>`;
+    const bonus = ((CK[chambreId]||{})[`j${i+1}`]||{}).bonus||0;
+    const raison = ((CK[chambreId]||{})[`j${i+1}`]||{}).bonusRaison||'';
+    return `<td class="check-cell" style="font-weight:900">${s}${bonus>0?`<br><span style="font-size:9px;color:#15803d">+${bonus}⭐</span>`:''}${raison?`<br><span style="font-size:8px;color:#666">${raison}</span>`:''}</td>`;
   }).join('');
 
   const rows = CRITERES.map((cr,ci)=>{
