@@ -2200,20 +2200,105 @@ window.printAllCh = (genre=null) => {
 };
 
 /* ═══════════════════════════════════════
-   PLANNING DES REPAS
+   PLANNING DES REPAS + JOURNÉES
    ═══════════════════════════════════════ */
 
-const PLANNING = [
-  { jour:'Lundi',    ico:'🌤️', belledonne:['DESCHARMES','DE LAFORCADE','CRIDLIG'],         alpage:['COSPEREC','SABRIE','EUDE','ACQUIER'] },
-  { jour:'Mardi',    ico:'⛅',  belledonne:['COSPEREC','SABRIE','DESCHARMES'],              alpage:['DE LAFORCADE','CRIDLIG','EUDE','ACQUIER'] },
-  { jour:'Mercredi', ico:'☀️',  belledonne:['EUDE','ACQUIER','DE LAFORCADE'],               alpage:['DESCHARMES','CRIDLIG','COSPEREC','SABRIE'] },
-  { jour:'Jeudi',    ico:'🌥️', belledonne:['CRIDLIG','SABRIE','EUDE'],                     alpage:['DESCHARMES','DE LAFORCADE','COSPEREC','ACQUIER'] },
-  { jour:'Vendredi', ico:'🏔️', belledonne:['DESCHARMES','COSPEREC','ACQUIER'],             alpage:['DE LAFORCADE','CRIDLIG','SABRIE','EUDE'] },
+// Prénoms des responsables
+const PROF_PRENOM = {
+  'DESCHARMES':    'Manon',
+  'DE LAFORCADE':  'Clémentine',
+  'CRIDLIG':       'Anna',
+  'COSPEREC':      'Emeric',
+  'SABRIE':        'Christophe',
+  'EUDE':          'Florian',
+  'ACQUIER':       'Ludivine',
+};
+
+const PLANNING_REPAS = [
+  { jour:'Lundi',    ico:'🌤️', belledonne:['DESCHARMES','DE LAFORCADE','CRIDLIG'],        alpage:['COSPEREC','SABRIE','EUDE','ACQUIER'] },
+  { jour:'Mardi',    ico:'⛅',  belledonne:['COSPEREC','SABRIE','DESCHARMES'],             alpage:['DE LAFORCADE','CRIDLIG','EUDE','ACQUIER'] },
+  { jour:'Mercredi', ico:'☀️',  belledonne:['EUDE','ACQUIER','DE LAFORCADE'],              alpage:['DESCHARMES','CRIDLIG','COSPEREC','SABRIE'] },
+  { jour:'Jeudi',    ico:'🌥️', belledonne:['CRIDLIG','SABRIE','EUDE'],                    alpage:['DESCHARMES','DE LAFORCADE','COSPEREC','ACQUIER'] },
+  { jour:'Vendredi', ico:'🏔️', belledonne:['DESCHARMES','COSPEREC','ACQUIER'],            alpage:['DE LAFORCADE','CRIDLIG','SABRIE','EUDE'] },
 ];
 
-let planningTab = 'general'; // 'general' | 'moi'
+// Planning journées complet — équipes = numéros (null = tous)
+const PLANNING_JOURNEES = [
+  {
+    jour:'Lundi', ico:'🚂', subtitle:"Jour d'arrivée",
+    creneaux:[
+      { heure:'7h13',     label:'Départ Gare de Lyon',                              ico:'🚂', equipes:null, type:'transport' },
+      { heure:'10h13',    label:'Arrivée Grenoble',                                 ico:'🚆', equipes:null, type:'transport' },
+      { heure:'~11h00',   label:'Arrivée aux chalets · Poser les sacs + essayage matos', ico:'🏔️', equipes:null, type:'info' },
+      { heure:'Après-midi', label:'Règle d\'or · Mise en équipe · Chambrée · Découverte du domaine', ico:'⛷️', equipes:null, type:'activite' },
+      { heure:'19h00',    label:'Repas',                                             ico:'🍽️', equipes:null, type:'repas' },
+      { heure:'Soir',     label:'PS',                                                ico:'🎯', equipes:[3,5], type:'activite' },
+      { heure:'Soir',     label:'Escape Game · Jeux de société',                     ico:'🎲', equipes:'autres:3,5', type:'activite' },
+    ]
+  },
+  {
+    jour:'Mardi', ico:'⛅', subtitle:'Ski + Biathlon',
+    creneaux:[
+      { heure:'7h30',     label:'Petit déjeuner',                                   ico:'☕', equipes:null, type:'repas' },
+      { heure:'9h30',     label:'Ski',                                               ico:'⛷️', equipes:null, type:'activite' },
+      { heure:'11h30',    label:'Fin ski',                                           ico:'🏁', equipes:null, type:'info' },
+      { heure:'Après-midi', label:'Biathlon + Rando + Compte rendu',               ico:'🎯', equipes:[1,2,6], type:'activite' },
+      { heure:'16h30',    label:'Intervention théorique DVA',                       ico:'📡', equipes:null, type:'activite' },
+      { heure:'16h30',    label:'Intervention pratique DVA',                        ico:'📡', equipes:[2,6], type:'activite' },
+      { heure:'19h00',    label:'Repas',                                             ico:'🍽️', equipes:null, type:'repas' },
+      { heure:'Soir',     label:'PS',                                                ico:'🎯', equipes:[1,4,7], type:'activite' },
+      { heure:'Soir',     label:'Escape Game · Jeux de société',                     ico:'🎲', equipes:'autres:1,4,7', type:'activite' },
+    ]
+  },
+  {
+    jour:'Mercredi', ico:'☀️', subtitle:'Ski + Maison de l\'environnement',
+    creneaux:[
+      { heure:'7h30',     label:'Petit déjeuner',                                   ico:'☕', equipes:null, type:'repas' },
+      { heure:'9h30',     label:'Ski',                                               ico:'⛷️', equipes:null, type:'activite' },
+      { heure:'11h30',    label:'Fin ski',                                           ico:'🏁', equipes:null, type:'info' },
+      { heure:'Après-midi', label:'Maison de l\'environnement',                    ico:'🌿', equipes:null, type:'activite' },
+      { heure:'Après-midi', label:'Biathlon + Rando + Compte rendu',               ico:'🎯', equipes:[3,4,5,7], type:'activite' },
+      { heure:'16h30',    label:'Intervention pratique DVA',                        ico:'📡', equipes:[1,3], type:'activite' },
+      { heure:'19h00',    label:'Repas',                                             ico:'🍽️', equipes:null, type:'repas' },
+      { heure:'Soir',     label:'PS',                                                ico:'🎯', equipes:[2,6], type:'activite' },
+      { heure:'Soir',     label:'Escape Game · Jeux de société',                     ico:'🎲', equipes:'autres:2,6', type:'activite' },
+    ]
+  },
+  {
+    jour:'Jeudi', ico:'🌥️', subtitle:'Ski + DVA + Boum',
+    creneaux:[
+      { heure:'7h30',     label:'Petit déjeuner',                                   ico:'☕', equipes:null, type:'repas' },
+      { heure:'9h30',     label:'Ski',                                               ico:'⛷️', equipes:null, type:'activite' },
+      { heure:'11h30',    label:'Fin ski',                                           ico:'🏁', equipes:null, type:'info' },
+      { heure:'16h30',    label:'Intervention pratique DVA',                        ico:'📡', equipes:[4,5,7], type:'activite' },
+      { heure:'19h00',    label:'Repas',                                             ico:'🍽️', equipes:null, type:'repas' },
+      { heure:'Soir',     label:'Boum 🪩',                                           ico:'🎉', equipes:null, type:'special' },
+    ]
+  },
+  {
+    jour:'Vendredi', ico:'🏔️', subtitle:'Retour',
+    creneaux:[
+      { heure:'7h30',     label:'Petit déjeuner + Rangement chambre',               ico:'☕', equipes:null, type:'repas' },
+      { heure:'9h30',     label:'Ski',                                               ico:'⛷️', equipes:null, type:'activite' },
+      { heure:'11h30',    label:'Fin ski',                                           ico:'🏁', equipes:null, type:'info' },
+      { heure:'15h00',    label:'Départ des chalets',                               ico:'🚌', equipes:null, type:'transport' },
+      { heure:'16h45',    label:'Départ Grenoble',                                  ico:'🚆', equipes:null, type:'transport' },
+      { heure:'19h46',    label:'Arrivée Gare de Lyon',                             ico:'🚂', equipes:null, type:'transport' },
+    ]
+  },
+];
 
-/* ── Trouve l'équipe à partir du nom de famille du responsable ── */
+let planningTab  = 'general';  // 'general' | 'moi'
+let planningView = 'repas';    // 'repas' | 'journees'
+
+/* ── Trouve l'équipe dans EQ par numéro (ex: 1 → "Equipe 1") ── */
+function findTeamByNum(num) {
+  return Object.entries(EQ).find(([,t])=>
+    t.nom && (t.nom.toLowerCase().includes(`equipe ${num}`) || t.nom.toLowerCase().includes(`équipe ${num}`) || t.nom===String(num))
+  );
+}
+
+/* ── Trouve l'équipe par nom de famille du prof ── */
 function findTeamByProf(nomFamille) {
   return Object.entries(EQ).find(([,t])=>{
     const r = (t.responsable||'').toUpperCase();
@@ -2221,154 +2306,191 @@ function findTeamByProf(nomFamille) {
   });
 }
 
-/* ── Chip équipe colorée ── */
+/* ── Chip équipe repas (prénom du prof) ── */
 function profChip(nomFamille, isMe=false) {
   const entry = findTeamByProf(nomFamille);
-  const col = entry ? teamColor({colorIdx:entry[1].colorIdx}, Object.keys(EQ).indexOf(entry[0])) : '#9ca3af';
-  const nom = entry ? esc(entry[1].nom) : esc(nomFamille);
-  const resp = entry ? esc(entry[1].responsable||nomFamille) : esc(nomFamille);
-  return `<span class="pl-team-chip ${isMe?'me':''}" style="background:${col}18;border-color:${col};color:${col}"
-    title="${resp}">
-    ${nom}${entry&&entry[1].responsable?`<span style="font-size:9px;opacity:.7;font-weight:600"> · ${resp.split(' ')[0]}</span>`:''}
+  const col   = entry ? teamColor({colorIdx:entry[1].colorIdx}, Object.keys(EQ).indexOf(entry[0])) : '#9ca3af';
+  const prenom = PROF_PRENOM[nomFamille] || nomFamille;
+  const teamNom = entry ? esc(entry[1].nom) : '';
+  return `<span class="pl-team-chip ${isMe?'me':''}" style="background:${col}18;border-color:${col};color:${col}" title="${teamNom}">
+    ${esc(prenom)}
   </span>`;
 }
 
-/* ── Render planning ── */
+/* ── Chip équipe activité (par numéro) ── */
+function teamNumChip(num, myNum=null) {
+  const entry = findTeamByNum(num);
+  const col   = entry ? teamColor({colorIdx:entry[1].colorIdx}, Object.keys(EQ).indexOf(entry[0])) : '#9ca3af';
+  const nom   = entry ? esc(entry[1].nom) : `Éq.${num}`;
+  const isMe  = myNum !== null && num === myNum;
+  return `<span class="pl-team-chip ${isMe?'me':''}" style="background:${col}18;border-color:${col};color:${col}">
+    ${nom}
+  </span>`;
+}
+
+/* ── Badge créneau ── */
+function creneauBadge(cr, myTeamNum=null) {
+  const typeColors = { repas:'#f97316', activite:'#3b82f6', transport:'#6b7280', info:'#9ca3af', special:'#a855f7' };
+  const col = typeColors[cr.type]||'#6b7280';
+
+  let equipeHtml = '';
+  if(cr.equipes && cr.equipes !== null) {
+    if(typeof cr.equipes === 'string' && cr.equipes.startsWith('autres:')) {
+      // "autres:3,5" → afficher "Autres équipes"
+      equipeHtml = `<span style="font-size:10px;color:var(--muted);font-style:italic">autres équipes</span>`;
+    } else {
+      equipeHtml = cr.equipes.map(n=>teamNumChip(n, myTeamNum)).join('');
+    }
+  }
+
+  // Détermine si ce créneau concerne mon équipe
+  let myHighlight = false;
+  if(myTeamNum !== null && cr.equipes && typeof cr.equipes !== 'string') {
+    myHighlight = cr.equipes.includes(myTeamNum);
+  } else if(cr.equipes === null) {
+    myHighlight = myTeamNum !== null; // tout le monde
+  }
+
+  return `<div style="display:flex;align-items:flex-start;gap:10px;padding:7px 0;border-bottom:1px solid var(--bg);
+    ${myHighlight&&myTeamNum?'':'opacity:.85'}">
+    <div style="min-width:52px;font-size:11px;font-weight:800;color:${col};flex-shrink:0;padding-top:1px">${esc(cr.heure)}</div>
+    <div style="flex:1;min-width:0">
+      <span style="font-size:13px;font-weight:700">${cr.ico} ${esc(cr.label)}</span>
+      ${equipeHtml?`<div style="margin-top:3px;display:flex;flex-wrap:wrap;gap:2px">${equipeHtml}</div>`:''}
+    </div>
+  </div>`;
+}
+
+/* ═══ RENDER PLANNING ═══ */
 function rPlanning() {
-  const tabs = `<div class="pl-tabs">
+  const viewTabs = `<div class="pl-tabs" style="margin-bottom:10px">
+    <button class="pl-tab ${planningView==='repas'?'active':''}" onclick="setPlanView('repas')">🍽️ Repas</button>
+    <button class="pl-tab ${planningView==='journees'?'active':''}" onclick="setPlanView('journees')">📋 Journées</button>
+  </div>`;
+  const modeTabs = `<div class="pl-tabs">
     <button class="pl-tab ${planningTab==='general'?'active':''}" onclick="setPlanTab('general')">📅 Tableau général</button>
     <button class="pl-tab ${planningTab==='moi'?'active':''}" onclick="setPlanTab('moi')">👤 Ma vue</button>
   </div>`;
 
-  let body = planningTab==='general' ? renderPlanGeneral() : renderPlanMoi();
-  G('pl-content').innerHTML = tabs + body;
+  let body = '';
+  if(planningView==='repas')    body = planningTab==='general' ? renderRepasGeneral() : renderRepasMoi();
+  else                          body = planningTab==='general' ? renderJourneesGeneral() : renderJourneesMoi();
+
+  G('pl-content').innerHTML = viewTabs + modeTabs + body;
 }
 
-function renderPlanGeneral() {
-  const cards = PLANNING.map(day=>{
+/* ───────────── REPAS ───────────── */
+function renderRepasGeneral() {
+  return PLANNING_REPAS.map(day=>{
     const bChips = day.belledonne.map(n=>profChip(n)).join('');
     const aChips = day.alpage.map(n=>profChip(n)).join('');
     return `<div class="pl-day-card">
-      <div class="pl-day-head">
-        <span style="font-size:20px">${day.ico}</span>
-        <span>${day.jour}</span>
-      </div>
+      <div class="pl-day-head"><span style="font-size:20px">${day.ico}</span><span>${day.jour}</span></div>
       <div class="pl-chalets">
         <div class="pl-chalet belledonne">
-          <div class="pl-chalet-title">🏔️ Chalet Belledonne</div>
-          ${bChips}
+          <div class="pl-chalet-title">🏔️ Belledonne</div>${bChips}
         </div>
         <div class="pl-chalet alpage">
-          <div class="pl-chalet-title">🌿 Chalet Alpage</div>
-          ${aChips}
+          <div class="pl-chalet-title">🌿 Alpage</div>${aChips}
         </div>
       </div>
     </div>`;
   }).join('');
-
-  // Matrice des rencontres
-  const profs = ['DESCHARMES','DE LAFORCADE','CRIDLIG','COSPEREC','SABRIE','EUDE','ACQUIER'];
-  const matrix = {};
-  profs.forEach(p=>{ matrix[p]={}; profs.forEach(q=>{ matrix[p][q]=0; }); });
-  PLANNING.forEach(day=>{
-    ['belledonne','alpage'].forEach(ch=>{
-      const group = day[ch];
-      group.forEach(p=>{ group.forEach(q=>{ if(p!==q) matrix[p][q]++; }); });
-    });
-  });
-
-  const headerRow = `<tr><th style="background:#f3f4f6"></th>${profs.map(p=>{
-    const entry = findTeamByProf(p);
-    const nom = entry?esc(entry[1].nom):esc(p);
-    const col = entry?teamColor({colorIdx:entry[1].colorIdx},Object.keys(EQ).indexOf(entry[0])):'#9ca3af';
-    return `<th style="font-size:10px;font-weight:800;color:${col};text-align:center;padding:6px 4px">${nom}<br><span style="font-size:9px;font-weight:400;color:var(--muted)">${p.split(' ')[0]}</span></th>`;
-  }).join('')}</tr>`;
-
-  const matrixRows = profs.map(p=>{
-    const entry = findTeamByProf(p);
-    const nom = entry?esc(entry[1].nom):esc(p);
-    const col = entry?teamColor({colorIdx:entry[1].colorIdx},Object.keys(EQ).indexOf(entry[0])):'#9ca3af';
-    const cells = profs.map(q=>{
-      if(p===q) return `<td style="text-align:center;color:var(--muted);font-size:14px">—</td>`;
-      const v = matrix[p][q];
-      const bg = v===0?'#f9fafb':v===1?'#fef9c3':v===2?'#dcfce7':v>=3?'#bbf7d0':'#f3f4f6';
-      const tc = v===0?'var(--muted)':v>=3?'#15803d':'#166534';
-      return `<td style="text-align:center;font-weight:700;font-size:13px;background:${bg};color:${tc}">${v===0?'·':v+'j'}</td>`;
-    }).join('');
-    return `<tr>
-      <td style="font-size:11px;font-weight:800;color:${col};padding:6px 8px;white-space:nowrap">${nom}<br><span style="font-size:9px;font-weight:400;color:var(--muted)">${p.split(' ')[0]}</span></td>
-      ${cells}
-    </tr>`;
-  }).join('');
-
-  const matrixHtml = `<div style="background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:14px;margin-top:14px;overflow-x:auto">
-    <div style="font-size:13px;font-weight:800;margin-bottom:10px">🤝 Matrice des rencontres repas</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Nombre de jours où deux équipes partagent le même chalet</div>
-    <table style="width:100%;border-collapse:collapse;font-size:12px">
-      ${headerRow}${matrixRows}
-    </table>
-    <div style="margin-top:8px;font-size:10px;color:var(--muted)">· = jamais ensemble · <span style="background:#fef9c3;padding:1px 4px;border-radius:3px">1j</span> · <span style="background:#dcfce7;padding:1px 4px;border-radius:3px">2j</span> · <span style="background:#bbf7d0;padding:1px 4px;border-radius:3px">3j+</span></div>
-  </div>`;
-
-  return cards + matrixHtml;
 }
 
-function renderPlanMoi() {
-  // Trouve l'équipe du user connecté
-  const myTeamEntry = Object.entries(EQ).find(([,t])=>{
-    const r = (t.responsable||'').toLowerCase();
-    return r.includes(cu.nom.toLowerCase()) || r.includes(cu.login.split('.')[1]||'');
-  });
-  const myProfName = cu.nom.toUpperCase(); // ex: EUDE
-
-  // Cherche dans le planning lequel correspond
-  const myPlanKey = ['DESCHARMES','DE LAFORCADE','CRIDLIG','COSPEREC','SABRIE','EUDE','ACQUIER']
-    .find(k => myProfName.includes(k.split(' ')[0]) || k.includes(myProfName.split(' ')[0]));
-
-  if(!myPlanKey) {
-    return `<div class="empty"><div class="em">🔍</div><p>Votre équipe n'est pas trouvée dans le planning.<br>Vérifiez que votre nom est bien renseigné dans le responsable d'une équipe.</p></div>`;
-  }
-
-  const myTeamNom = myTeamEntry ? myTeamEntry[1].nom : `Éq. ${myPlanKey}`;
-  const myTeamCol = myTeamEntry ? teamColor({colorIdx:myTeamEntry[1].colorIdx}, Object.keys(EQ).indexOf(myTeamEntry[0])) : '#1a73e8';
-
-  const myCard = `<div style="background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;border-radius:var(--r);padding:14px 16px;margin-bottom:16px;box-shadow:var(--sh)">
-    <div style="font-size:11px;font-weight:700;opacity:.7;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Votre équipe</div>
-    <div style="font-size:20px;font-weight:900">${myTeamNom}</div>
-    <div style="font-size:12px;opacity:.8;margin-top:2px">👤 ${cu.prenom} ${cu.nom}</div>
-  </div>`;
-
-  const days = PLANNING.map(day=>{
-    const inBelledonne = day.belledonne.includes(myPlanKey);
-    const chalet = inBelledonne ? 'belledonne' : 'alpage';
-    const chaletName = inBelledonne ? '🏔️ Chalet Belledonne' : '🌿 Chalet Alpage';
-    const chaletClass = inBelledonne ? 'belledonne' : 'alpage';
-    const companions = inBelledonne
-      ? day.belledonne.filter(n=>n!==myPlanKey)
-      : day.alpage.filter(n=>n!==myPlanKey);
-    const otherChalet = inBelledonne ? day.alpage : day.belledonne;
-    const companionChips = companions.map(n=>profChip(n,false)).join(' ');
-    const otherChips = otherChalet.map(n=>profChip(n,false)).join(' ');
-    const otherName = inBelledonne ? '🌿 Alpage' : '🏔️ Belledonne';
-
+function renderRepasMoi() {
+  const { myPlanKey, myTeamNom, myTeamCol } = getMyPlanInfo();
+  if(!myPlanKey) return noTeamMsg();
+  const myCard = myBanner(myTeamNom, myTeamCol);
+  const days = PLANNING_REPAS.map(day=>{
+    const inB = day.belledonne.includes(myPlanKey);
+    const chalet = inB ? '🏔️ Chalet Belledonne' : '🌿 Chalet Alpage';
+    const chaletClass = inB ? 'belledonne' : 'alpage';
+    const companions = (inB ? day.belledonne : day.alpage).filter(n=>n!==myPlanKey);
+    const other = inB ? day.alpage : day.belledonne;
+    const otherName = inB ? '🌿 Alpage' : '🏔️ Belledonne';
     return `<div class="pl-my-day">
       <div class="pl-my-head">
         <div class="pl-my-jour">${day.ico} ${day.jour}</div>
         <div class="pl-my-chalet">
-          <div class="pl-my-chalet-name ${chaletClass}">${chaletName}</div>
-          <div class="pl-my-companions">Avec vous : ${companionChips||'<span style="color:var(--muted);font-size:11px">aucune autre équipe</span>'}</div>
+          <div class="pl-my-chalet-name ${chaletClass}">${chalet}</div>
+          <div class="pl-my-companions">Avec vous : ${companions.map(n=>profChip(n)).join('')||'<span style="color:var(--muted)">—</span>'}</div>
         </div>
       </div>
       <div style="padding:0 14px 10px;font-size:11px;color:var(--muted)">
-        <span style="font-weight:700">${otherName} :</span> ${otherChips}
+        <span style="font-weight:700">${otherName} :</span> ${other.map(n=>profChip(n)).join('')}
       </div>
     </div>`;
   }).join('');
-
   return myCard + days;
 }
 
-window.setPlanTab = t => { planningTab=t; rPlanning(); };
+/* ───────────── JOURNÉES ───────────── */
+function renderJourneesGeneral() {
+  return PLANNING_JOURNEES.map(day=>`
+    <div class="pl-day-card">
+      <div class="pl-day-head">
+        <span style="font-size:20px">${day.ico}</span>
+        <div>
+          <div>${day.jour}</div>
+          <div style="font-size:11px;opacity:.7;font-weight:400">${day.subtitle}</div>
+        </div>
+      </div>
+      <div style="padding:8px 14px 4px">
+        ${day.creneaux.map(cr=>creneauBadge(cr, null)).join('')}
+      </div>
+    </div>`).join('');
+}
+
+function renderJourneesMoi() {
+  const { myTeamNom, myTeamCol, myTeamNum } = getMyPlanInfo();
+  if(myTeamNum === null) return noTeamMsg();
+  const myCard = myBanner(myTeamNom, myTeamCol);
+  const days = PLANNING_JOURNEES.map(day=>`
+    <div class="pl-my-day">
+      <div style="padding:10px 14px 8px;background:linear-gradient(135deg,#0d1b4b08,#1a73e808);border-bottom:1.5px solid var(--bg)">
+        <span style="font-size:14px;font-weight:900">${day.ico} ${day.jour}</span>
+        <span style="font-size:11px;color:var(--muted);margin-left:8px">${day.subtitle}</span>
+      </div>
+      <div style="padding:4px 14px 8px">
+        ${day.creneaux.map(cr=>creneauBadge(cr, myTeamNum)).join('')}
+      </div>
+    </div>`).join('');
+  return myCard + days;
+}
+
+/* ───────────── HELPERS ───────────── */
+function getMyPlanInfo() {
+  // Trouve le profil du user dans le planning repas par son nom
+  const myNomUp = cu.nom.toUpperCase();
+  const myPlanKey = Object.keys(PROF_PRENOM).find(k =>
+    myNomUp.includes(k.split(' ')[0]) || k.split(' ')[0].includes(myNomUp.split(' ')[0])
+  ) || null;
+  const myTeamEntry = myPlanKey ? findTeamByProf(myPlanKey) : null;
+  const myTeamNom   = myTeamEntry ? myTeamEntry[1].nom : (myPlanKey ? `Éq. ${myPlanKey}` : '');
+  const myTeamCol   = myTeamEntry ? teamColor({colorIdx:myTeamEntry[1].colorIdx}, Object.keys(EQ).indexOf(myTeamEntry[0])) : '#1a73e8';
+  // Extrait le numéro de l'équipe depuis le nom (ex: "Equipe 3" → 3)
+  const numMatch    = myTeamNom.match(/\d+/);
+  const myTeamNum   = numMatch ? parseInt(numMatch[0]) : null;
+  return { myPlanKey, myTeamNom, myTeamCol, myTeamNum };
+}
+
+function myBanner(nom, col) {
+  return `<div style="background:linear-gradient(135deg,#0d1b4b,${col});color:#fff;border-radius:var(--r);padding:12px 16px;margin-bottom:14px;box-shadow:var(--sh)">
+    <div style="font-size:10px;font-weight:700;opacity:.7;text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px">Votre équipe</div>
+    <div style="font-size:18px;font-weight:900">${esc(nom)}</div>
+    <div style="font-size:11px;opacity:.8;margin-top:2px">👤 ${esc(cu.prenom)} ${esc(cu.nom)}</div>
+  </div>`;
+}
+
+function noTeamMsg() {
+  return `<div class="empty"><div class="em">🔍</div><p>Votre équipe n'est pas trouvée dans le planning.<br>Vérifiez que votre nom figure dans le champ Responsable d'une équipe.</p></div>`;
+}
+
+window.setPlanTab  = t => { planningTab=t;  rPlanning(); };
+window.setPlanView = v => { planningView=v; rPlanning(); };
+
+
 
 /* ═══ TOAST ═══ */
 function toast(msg,type='') {
