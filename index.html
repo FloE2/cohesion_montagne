@@ -326,6 +326,34 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
   .total-row{background:#f3f4f6;font-weight:900}
   .print-sign{font-size:9px;color:#666;margin-top:8px;text-align:right;font-style:italic}
 }
+/* ═══ PLANNING ═══ */
+.pl-tabs{display:flex;background:var(--bg);border-radius:12px;padding:4px;gap:4px;margin-bottom:14px}
+.pl-tab{flex:1;padding:9px;border:none;border-radius:9px;font-size:13px;font-weight:700;
+  cursor:pointer;background:none;color:var(--muted);transition:all .15s;text-align:center}
+.pl-tab.active{background:var(--card);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+/* Tableau général */
+.pl-day-card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:12px;overflow:hidden}
+.pl-day-head{padding:10px 14px;font-size:14px;font-weight:900;display:flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff}
+.pl-chalets{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.pl-chalet{padding:12px 14px;border-right:1px solid var(--bg)}
+.pl-chalet:last-child{border-right:none}
+.pl-chalet-title{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.pl-chalet.belledonne .pl-chalet-title{color:#1a73e8}
+.pl-chalet.alpage .pl-chalet-title{color:#15803d}
+.pl-team-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;
+  font-size:12px;font-weight:700;margin:2px;border:1.5px solid transparent}
+.pl-team-chip.me{outline:2.5px solid var(--primary);outline-offset:1px;font-size:13px}
+/* Vue personnelle */
+.pl-my-day{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:10px;overflow:hidden}
+.pl-my-head{display:flex;align-items:center;gap:12px;padding:12px 14px}
+.pl-my-jour{font-size:13px;font-weight:800;color:var(--muted);min-width:70px}
+.pl-my-chalet{flex:1}
+.pl-my-chalet-name{font-size:16px;font-weight:900}
+.pl-my-chalet-name.belledonne{color:#1a73e8}
+.pl-my-chalet-name.alpage{color:#15803d}
+.pl-my-companions{font-size:11px;color:var(--muted);margin-top:3px}
+.pl-my-ico{font-size:26px;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -387,6 +415,9 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
       <button class="bnt" id="bnt-chambres" onclick="showPanel('chambres')">
         <span class="ic">🛏️</span>Chambres
       </button>
+      <button class="bnt" id="bnt-planning" onclick="showPanel('planning')">
+        <span class="ic">📅</span>Planning
+      </button>
     </nav>
   </header>
 
@@ -405,8 +436,10 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
     <div id="ad-content"></div>
   </div>
 
-  <!-- CHAMBRES -->
-  <div class="panel" id="panel-chambres">
+  <!-- PLANNING -->
+  <div class="panel" id="panel-planning">
+    <div id="pl-content"></div>
+  </div>
     <div id="ch-content"></div>
   </div>
 
@@ -711,6 +744,7 @@ function rc() {
   else if(panelAct==='attribuer') rAttr();
   else if(panelAct==='admin') rAdmin();
   else if(panelAct==='chambres') rChambres();
+  else if(panelAct==='planning') rPlanning();
 }
 
 /* ═══ HELPERS DATA ═══ */
@@ -2164,6 +2198,177 @@ window.printAllCh = (genre=null) => {
   }).join('');
   window.print();
 };
+
+/* ═══════════════════════════════════════
+   PLANNING DES REPAS
+   ═══════════════════════════════════════ */
+
+const PLANNING = [
+  { jour:'Lundi',    ico:'🌤️', belledonne:['DESCHARMES','DE LAFORCADE','CRIDLIG'],         alpage:['COSPEREC','SABRIE','EUDE','ACQUIER'] },
+  { jour:'Mardi',    ico:'⛅',  belledonne:['COSPEREC','SABRIE','DESCHARMES'],              alpage:['DE LAFORCADE','CRIDLIG','EUDE','ACQUIER'] },
+  { jour:'Mercredi', ico:'☀️',  belledonne:['EUDE','ACQUIER','DE LAFORCADE'],               alpage:['DESCHARMES','CRIDLIG','COSPEREC','SABRIE'] },
+  { jour:'Jeudi',    ico:'🌥️', belledonne:['CRIDLIG','SABRIE','EUDE'],                     alpage:['DESCHARMES','DE LAFORCADE','COSPEREC','ACQUIER'] },
+  { jour:'Vendredi', ico:'🏔️', belledonne:['DESCHARMES','COSPEREC','ACQUIER'],             alpage:['DE LAFORCADE','CRIDLIG','SABRIE','EUDE'] },
+];
+
+let planningTab = 'general'; // 'general' | 'moi'
+
+/* ── Trouve l'équipe à partir du nom de famille du responsable ── */
+function findTeamByProf(nomFamille) {
+  return Object.entries(EQ).find(([,t])=>{
+    const r = (t.responsable||'').toUpperCase();
+    return r.includes(nomFamille.toUpperCase());
+  });
+}
+
+/* ── Chip équipe colorée ── */
+function profChip(nomFamille, isMe=false) {
+  const entry = findTeamByProf(nomFamille);
+  const col = entry ? teamColor({colorIdx:entry[1].colorIdx}, Object.keys(EQ).indexOf(entry[0])) : '#9ca3af';
+  const nom = entry ? esc(entry[1].nom) : esc(nomFamille);
+  const resp = entry ? esc(entry[1].responsable||nomFamille) : esc(nomFamille);
+  return `<span class="pl-team-chip ${isMe?'me':''}" style="background:${col}18;border-color:${col};color:${col}"
+    title="${resp}">
+    ${nom}${entry&&entry[1].responsable?`<span style="font-size:9px;opacity:.7;font-weight:600"> · ${resp.split(' ')[0]}</span>`:''}
+  </span>`;
+}
+
+/* ── Render planning ── */
+function rPlanning() {
+  const tabs = `<div class="pl-tabs">
+    <button class="pl-tab ${planningTab==='general'?'active':''}" onclick="setPlanTab('general')">📅 Tableau général</button>
+    <button class="pl-tab ${planningTab==='moi'?'active':''}" onclick="setPlanTab('moi')">👤 Ma vue</button>
+  </div>`;
+
+  let body = planningTab==='general' ? renderPlanGeneral() : renderPlanMoi();
+  G('pl-content').innerHTML = tabs + body;
+}
+
+function renderPlanGeneral() {
+  const cards = PLANNING.map(day=>{
+    const bChips = day.belledonne.map(n=>profChip(n)).join('');
+    const aChips = day.alpage.map(n=>profChip(n)).join('');
+    return `<div class="pl-day-card">
+      <div class="pl-day-head">
+        <span style="font-size:20px">${day.ico}</span>
+        <span>${day.jour}</span>
+      </div>
+      <div class="pl-chalets">
+        <div class="pl-chalet belledonne">
+          <div class="pl-chalet-title">🏔️ Chalet Belledonne</div>
+          ${bChips}
+        </div>
+        <div class="pl-chalet alpage">
+          <div class="pl-chalet-title">🌿 Chalet Alpage</div>
+          ${aChips}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Matrice des rencontres
+  const profs = ['DESCHARMES','DE LAFORCADE','CRIDLIG','COSPEREC','SABRIE','EUDE','ACQUIER'];
+  const matrix = {};
+  profs.forEach(p=>{ matrix[p]={}; profs.forEach(q=>{ matrix[p][q]=0; }); });
+  PLANNING.forEach(day=>{
+    ['belledonne','alpage'].forEach(ch=>{
+      const group = day[ch];
+      group.forEach(p=>{ group.forEach(q=>{ if(p!==q) matrix[p][q]++; }); });
+    });
+  });
+
+  const headerRow = `<tr><th style="background:#f3f4f6"></th>${profs.map(p=>{
+    const entry = findTeamByProf(p);
+    const nom = entry?esc(entry[1].nom):esc(p);
+    const col = entry?teamColor({colorIdx:entry[1].colorIdx},Object.keys(EQ).indexOf(entry[0])):'#9ca3af';
+    return `<th style="font-size:10px;font-weight:800;color:${col};text-align:center;padding:6px 4px">${nom}<br><span style="font-size:9px;font-weight:400;color:var(--muted)">${p.split(' ')[0]}</span></th>`;
+  }).join('')}</tr>`;
+
+  const matrixRows = profs.map(p=>{
+    const entry = findTeamByProf(p);
+    const nom = entry?esc(entry[1].nom):esc(p);
+    const col = entry?teamColor({colorIdx:entry[1].colorIdx},Object.keys(EQ).indexOf(entry[0])):'#9ca3af';
+    const cells = profs.map(q=>{
+      if(p===q) return `<td style="text-align:center;color:var(--muted);font-size:14px">—</td>`;
+      const v = matrix[p][q];
+      const bg = v===0?'#f9fafb':v===1?'#fef9c3':v===2?'#dcfce7':v>=3?'#bbf7d0':'#f3f4f6';
+      const tc = v===0?'var(--muted)':v>=3?'#15803d':'#166534';
+      return `<td style="text-align:center;font-weight:700;font-size:13px;background:${bg};color:${tc}">${v===0?'·':v+'j'}</td>`;
+    }).join('');
+    return `<tr>
+      <td style="font-size:11px;font-weight:800;color:${col};padding:6px 8px;white-space:nowrap">${nom}<br><span style="font-size:9px;font-weight:400;color:var(--muted)">${p.split(' ')[0]}</span></td>
+      ${cells}
+    </tr>`;
+  }).join('');
+
+  const matrixHtml = `<div style="background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:14px;margin-top:14px;overflow-x:auto">
+    <div style="font-size:13px;font-weight:800;margin-bottom:10px">🤝 Matrice des rencontres repas</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Nombre de jours où deux équipes partagent le même chalet</div>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      ${headerRow}${matrixRows}
+    </table>
+    <div style="margin-top:8px;font-size:10px;color:var(--muted)">· = jamais ensemble · <span style="background:#fef9c3;padding:1px 4px;border-radius:3px">1j</span> · <span style="background:#dcfce7;padding:1px 4px;border-radius:3px">2j</span> · <span style="background:#bbf7d0;padding:1px 4px;border-radius:3px">3j+</span></div>
+  </div>`;
+
+  return cards + matrixHtml;
+}
+
+function renderPlanMoi() {
+  // Trouve l'équipe du user connecté
+  const myTeamEntry = Object.entries(EQ).find(([,t])=>{
+    const r = (t.responsable||'').toLowerCase();
+    return r.includes(cu.nom.toLowerCase()) || r.includes(cu.login.split('.')[1]||'');
+  });
+  const myProfName = cu.nom.toUpperCase(); // ex: EUDE
+
+  // Cherche dans le planning lequel correspond
+  const myPlanKey = ['DESCHARMES','DE LAFORCADE','CRIDLIG','COSPEREC','SABRIE','EUDE','ACQUIER']
+    .find(k => myProfName.includes(k.split(' ')[0]) || k.includes(myProfName.split(' ')[0]));
+
+  if(!myPlanKey) {
+    return `<div class="empty"><div class="em">🔍</div><p>Votre équipe n'est pas trouvée dans le planning.<br>Vérifiez que votre nom est bien renseigné dans le responsable d'une équipe.</p></div>`;
+  }
+
+  const myTeamNom = myTeamEntry ? myTeamEntry[1].nom : `Éq. ${myPlanKey}`;
+  const myTeamCol = myTeamEntry ? teamColor({colorIdx:myTeamEntry[1].colorIdx}, Object.keys(EQ).indexOf(myTeamEntry[0])) : '#1a73e8';
+
+  const myCard = `<div style="background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;border-radius:var(--r);padding:14px 16px;margin-bottom:16px;box-shadow:var(--sh)">
+    <div style="font-size:11px;font-weight:700;opacity:.7;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px">Votre équipe</div>
+    <div style="font-size:20px;font-weight:900">${myTeamNom}</div>
+    <div style="font-size:12px;opacity:.8;margin-top:2px">👤 ${cu.prenom} ${cu.nom}</div>
+  </div>`;
+
+  const days = PLANNING.map(day=>{
+    const inBelledonne = day.belledonne.includes(myPlanKey);
+    const chalet = inBelledonne ? 'belledonne' : 'alpage';
+    const chaletName = inBelledonne ? '🏔️ Chalet Belledonne' : '🌿 Chalet Alpage';
+    const chaletClass = inBelledonne ? 'belledonne' : 'alpage';
+    const companions = inBelledonne
+      ? day.belledonne.filter(n=>n!==myPlanKey)
+      : day.alpage.filter(n=>n!==myPlanKey);
+    const otherChalet = inBelledonne ? day.alpage : day.belledonne;
+    const companionChips = companions.map(n=>profChip(n,false)).join(' ');
+    const otherChips = otherChalet.map(n=>profChip(n,false)).join(' ');
+    const otherName = inBelledonne ? '🌿 Alpage' : '🏔️ Belledonne';
+
+    return `<div class="pl-my-day">
+      <div class="pl-my-head">
+        <div class="pl-my-jour">${day.ico} ${day.jour}</div>
+        <div class="pl-my-chalet">
+          <div class="pl-my-chalet-name ${chaletClass}">${chaletName}</div>
+          <div class="pl-my-companions">Avec vous : ${companionChips||'<span style="color:var(--muted);font-size:11px">aucune autre équipe</span>'}</div>
+        </div>
+      </div>
+      <div style="padding:0 14px 10px;font-size:11px;color:var(--muted)">
+        <span style="font-weight:700">${otherName} :</span> ${otherChips}
+      </div>
+    </div>`;
+  }).join('');
+
+  return myCard + days;
+}
+
+window.setPlanTab = t => { planningTab=t; rPlanning(); };
 
 /* ═══ TOAST ═══ */
 function toast(msg,type='') {
