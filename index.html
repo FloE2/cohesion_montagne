@@ -354,6 +354,15 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
 .pl-my-chalet-name.alpage{color:#15803d}
 .pl-my-companions{font-size:11px;color:var(--muted);margin-top:3px}
 .pl-my-ico{font-size:26px;flex-shrink:0}
+/* ═══ MÉTÉO ═══ */
+.meteo-bar{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.12);
+  border-radius:10px;padding:6px 12px;margin:0 0 12px;flex-wrap:wrap}
+.meteo-ico{font-size:20px;flex-shrink:0}
+.meteo-temp{font-size:18px;font-weight:900;color:#fff}
+.meteo-detail{display:flex;gap:10px;flex-wrap:wrap}
+.meteo-pill{font-size:11px;color:rgba(255,255,255,.85);display:flex;align-items:center;gap:3px;
+  background:rgba(255,255,255,.1);border-radius:6px;padding:2px 7px}
+.meteo-loading{font-size:11px;color:rgba(255,255,255,.6);font-style:italic}
 </style>
 </head>
 <body>
@@ -403,6 +412,8 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
       </div>
     </div>
     <nav class="hnav" id="hnav" style="display:none">
+      <!-- MÉTÉO CHAMROUSSE -->
+      <div class="meteo-bar" id="meteo-bar" style="display:none"></div>
       <button class="bnt active" id="bnt-classement" onclick="showPanel('classement')">
         <span class="ic">🏆</span>Classement
       </button>
@@ -714,6 +725,8 @@ function startApp() {
   G('hname').textContent = cu.prenom;
   if(cu.role==='admin') G('bnt-admin').style.display = 'flex';
   G('hnav').style.display = 'flex';
+  fetchMeteo();
+  setInterval(fetchMeteo, 30 * 60 * 1000); // refresh toutes les 30 min
 
   const u1 = onValue(ref(db,'sejour/equipes'), s=>{ EQ=s.val()||{}; rc(); });
   const u2 = onValue(ref(db,'sejour/historique'), s=>{ HI=s.val()||{}; rc(); });
@@ -1370,6 +1383,11 @@ function aEquipes() {
       🔄 Remise à zéro
     </button>
   </div>
+  <button onclick="openMural()" style="width:100%;padding:10px;background:#0d1b4b;color:#fff;
+    border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;margin-bottom:14px;
+    display:flex;align-items:center;justify-content:center;gap:8px">
+    📺 Ouvrir l'affichage mural
+  </button>
   ${teams.length ? items : '<div class="empty"><div class="em">🏔️</div><p>Aucune équipe.<br>Créez-en une !</p></div>'}`;
 }
 
@@ -2218,17 +2236,17 @@ const PROF_PRENOM = {
 };
 
 const PLANNING_REPAS = [
-  { jour:'Lundi',    ico:'🌤️', belledonne:['DESCHARMES','DE LAFORCADE','CRIDLIG'],        alpage:['COSPEREC','SABRIE','EUDE','ACQUIER'] },
-  { jour:'Mardi',    ico:'⛅',  belledonne:['COSPEREC','SABRIE','DESCHARMES'],             alpage:['DE LAFORCADE','CRIDLIG','EUDE','ACQUIER'] },
-  { jour:'Mercredi', ico:'☀️',  belledonne:['EUDE','ACQUIER','DE LAFORCADE'],              alpage:['DESCHARMES','CRIDLIG','COSPEREC','SABRIE'] },
-  { jour:'Jeudi',    ico:'🌥️', belledonne:['CRIDLIG','SABRIE','EUDE'],                    alpage:['DESCHARMES','DE LAFORCADE','COSPEREC','ACQUIER'] },
-  { jour:'Vendredi', ico:'🏔️', belledonne:['DESCHARMES','COSPEREC','ACQUIER'],            alpage:['DE LAFORCADE','CRIDLIG','SABRIE','EUDE'] },
+  { jour:'Lundi',    ico:'1️⃣', belledonne:['DESCHARMES','DE LAFORCADE','CRIDLIG'],        alpage:['COSPEREC','SABRIE','EUDE','ACQUIER'] },
+  { jour:'Mardi',    ico:'2️⃣',  belledonne:['COSPEREC','SABRIE','DESCHARMES'],             alpage:['DE LAFORCADE','CRIDLIG','EUDE','ACQUIER'] },
+  { jour:'Mercredi', ico:'3️⃣',  belledonne:['EUDE','ACQUIER','DE LAFORCADE'],              alpage:['DESCHARMES','CRIDLIG','COSPEREC','SABRIE'] },
+  { jour:'Jeudi',    ico:'4️⃣', belledonne:['CRIDLIG','SABRIE','EUDE'],                    alpage:['DESCHARMES','DE LAFORCADE','COSPEREC','ACQUIER'] },
+  { jour:'Vendredi', ico:'5️⃣', belledonne:['DESCHARMES','COSPEREC','ACQUIER'],            alpage:['DE LAFORCADE','CRIDLIG','SABRIE','EUDE'] },
 ];
 
 // Planning journées complet — équipes = numéros (null = tous)
 const PLANNING_JOURNEES = [
   {
-    jour:'Lundi', ico:'🚂', subtitle:"Jour d'arrivée",
+    jour:'Lundi', ico:'1️⃣', subtitle:"Jour d'arrivée",
     creneaux:[
       { heure:'7h13',       label:'Départ Gare de Lyon',                                    ico:'🚂', equipes:null,         type:'transport' },
       { heure:'10h13',      label:'Arrivée Grenoble',                                       ico:'🚆', equipes:null,         type:'transport' },
@@ -2241,7 +2259,7 @@ const PLANNING_JOURNEES = [
     ]
   },
   {
-    jour:'Mardi', ico:'⛅', subtitle:'Ski + Biathlon + DVA',
+    jour:'Mardi', ico:'2️⃣', subtitle:'Ski + Biathlon + DVA',
     creneaux:[
       { heure:'7h30',       label:'Petit déjeuner',                   ico:'☕', equipes:null,          type:'repas' },
       { heure:'9h30',       label:'Ski',                                    ico:'⛷️', equipes:null,   type:'activite' },
@@ -2256,7 +2274,7 @@ const PLANNING_JOURNEES = [
     ]
   },
   {
-    jour:'Mercredi', ico:'☀️', subtitle:"Ski + Maison de l'environnement + DVA",
+    jour:'Mercredi', ico:'3️⃣', subtitle:"Ski + Maison de l'environnement + DVA",
     creneaux:[
       { heure:'7h30',       label:'Petit déjeuner',                           ico:'☕', equipes:null,          type:'repas' },
       { heure:'9h30',       label:'Ski',                                            ico:'⛷️', equipes:null,   type:'activite' },
@@ -2271,7 +2289,7 @@ const PLANNING_JOURNEES = [
     ]
   },
   {
-    jour:'Jeudi', ico:'🌥️', subtitle:'Ski + DVA + Boum',
+    jour:'Jeudi', ico:'4️⃣', subtitle:'Ski + DVA + Boum',
     creneaux:[
       { heure:'7h30',  label:'Petit déjeuner',               ico:'☕', equipes:null,           type:'repas' },
       { heure:'9h30',  label:'Ski',                                ico:'⛷️', equipes:null,    type:'activite' },
@@ -2283,7 +2301,7 @@ const PLANNING_JOURNEES = [
     ]
   },
   {
-    jour:'Vendredi', ico:'🏔️', subtitle:'Dernier ski + Retour',
+    jour:'Vendredi', ico:'5️⃣', subtitle:'Dernier ski + Retour',
     creneaux:[
       { heure:'7h30',  label:'Petit déjeuner + Rangement chambre',  ico:'☕', equipes:null, type:'repas' },
       { heure:'9h30',  label:'Ski',                                        ico:'⛷️', equipes:null, type:'activite' },
@@ -2509,6 +2527,133 @@ window.setPlanTab  = t => { planningTab=t;  rPlanning(); };
 window.setPlanView = v => { planningView=v; rPlanning(); };
 
 
+
+/* ═══ MÉTÉO CHAMROUSSE ═══ */
+const METEO_CODES = {
+  0:'☀️',1:'🌤️',2:'⛅',3:'☁️',
+  45:'🌫️',48:'🌫️',
+  51:'🌦️',53:'🌦️',55:'🌦️',
+  61:'🌧️',63:'🌧️',65:'🌧️',
+  71:'❄️',73:'❄️',75:'❄️',77:'🌨️',
+  80:'🌦️',81:'🌧️',82:'⛈️',
+  85:'🌨️',86:'🌨️',
+  95:'⛈️',96:'⛈️',99:'⛈️',
+};
+const METEO_LABELS = {
+  0:'Ciel dégagé',1:'Peu nuageux',2:'Partiellement nuageux',3:'Couvert',
+  45:'Brouillard',48:'Brouillard givrant',
+  51:'Bruine légère',53:'Bruine',55:'Bruine dense',
+  61:'Pluie légère',63:'Pluie',65:'Pluie forte',
+  71:'Neige légère',73:'Neige',75:'Neige forte',77:'Grésil',
+  80:'Averses',81:'Averses fortes',82:'Averses violentes',
+  85:'Averses de neige',86:'Averses de neige fortes',
+  95:'Orage',96:'Orage grêle',99:'Orage grêle fort',
+};
+
+async function fetchMeteo() {
+  try {
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude=45.12&longitude=5.88&elevation=1650&current=temperature_2m,wind_speed_10m,snowfall,weather_code&wind_speed_unit=kmh&timezone=Europe/Paris';
+    const r = await fetch(url);
+    const d = await r.json();
+    const c = d.current;
+    const code = c.weather_code;
+    const ico  = METEO_CODES[code] || '🏔️';
+    const label = METEO_LABELS[code] || '';
+    const temp  = Math.round(c.temperature_2m);
+    const wind  = Math.round(c.wind_speed_10m);
+    const snow  = c.snowfall > 0 ? `❄️ ${c.snowfall.toFixed(1)} cm` : null;
+    const bar = G('meteo-bar');
+    if(!bar) return;
+    bar.style.display = 'flex';
+    bar.innerHTML = `
+      <span class="meteo-ico">${ico}</span>
+      <span class="meteo-temp">${temp}°C</span>
+      <span class="meteo-pill" style="font-size:11px;color:rgba(255,255,255,.85);background:rgba(255,255,255,.1);border-radius:6px;padding:2px 7px">${label}</span>`;
+  } catch(e) {
+    const bar = G('meteo-bar');
+    if(bar) { bar.style.display='flex'; bar.innerHTML='<span class="meteo-loading">Météo indisponible</span>'; }
+  }
+}
+
+/* ═══ MODE AFFICHAGE MURAL ═══ */
+window.openMural = () => {
+  const teams = sortedTeams();
+  const fbUrl = 'https://sejour-montagne-default-rtdb.europe-west1.firebasedatabase.app/sejour/equipes.json';
+
+  const rows = teams.map((t,i)=>{
+    const col = teamColor(t,i);
+    const rank = i+1;
+    const medal = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':'';
+    const pts = t.totalPts;
+    const sc = pts>0?'#15803d':pts<0?'#b91c1c':'#6b7280';
+    const bar = teams[0].totalPts>0 ? Math.round(pts/teams[0].totalPts*100) : 0;
+    return `<div style="display:flex;align-items:center;gap:20px;padding:14px 24px;
+      background:#fff;border-radius:16px;border-left:8px solid ${col};box-shadow:0 2px 12px rgba(0,0,0,.07)">
+      <div style="width:52px;height:52px;border-radius:50%;background:${col};display:flex;align-items:center;
+        justify-content:center;font-size:22px;font-weight:900;color:#fff;flex-shrink:0">${medal||rank}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:22px;font-weight:900;color:#1a1f2e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+          ${t.nom}${t.responsable?` <span style="font-size:14px;font-weight:400;color:#6b7280">· ${t.responsable}</span>`:''}
+        </div>
+        <div style="margin-top:6px;background:#eef2f7;border-radius:20px;height:8px;overflow:hidden">
+          <div style="width:${Math.max(bar,2)}%;height:100%;background:${col};border-radius:20px;transition:width .6s"></div>
+        </div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:40px;font-weight:900;color:${sc};line-height:1">${pts>0?'+':''}${pts}</div>
+        ${t.chBonus>0?`<div style="font-size:13px;color:#6b7280;margin-top:2px">🛏️ +${t.chBonus}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const now = new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Classement · Cohésion Montagne</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#eef2f7;font-family:-apple-system,'Segoe UI',system-ui,sans-serif;
+      min-height:100vh;padding:24px}
+    .header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
+      border-radius:20px;padding:20px 28px;margin-bottom:20px;
+      display:flex;align-items:center;justify-content:space-between}
+  </style>
+  </head><body>
+  <div class="header">
+    <div>
+      <div style="font-size:28px;font-weight:900">🏔️ Classement Cohésion Montagne</div>
+      <div style="font-size:14px;opacity:.75;margin-top:4px">Yves du Manoir · Chamrousse 2026</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:13px;opacity:.7">Mis à jour à</div>
+      <div style="font-size:24px;font-weight:900" id="clock">${now}</div>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px" id="board">${rows}</div>
+  <script>
+    setInterval(()=>{
+      const t=new Date();
+      const c=G('clock');
+      if(c) c.textContent=t.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+    },30000);
+    const G=id=>document.getElementById(id);
+    const fbUrl='${fbUrl}';
+    async function refresh(){
+      try{
+        const r=await fetch(fbUrl+'?'+Date.now());
+        const eq=await r.json();
+        if(!eq) return;
+        window.location.reload();
+      }catch(e){}
+    }
+    setInterval(refresh,10000);
+  <\/script>
+  </body></html>`;
+
+  const w = window.open('','_blank','width=1200,height=800');
+  w.document.write(html);
+  w.document.close();
+};
 
 /* ═══ TOAST ═══ */
 function toast(msg,type='') {
