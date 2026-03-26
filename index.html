@@ -1113,7 +1113,6 @@ window.pickEleve = id => {
 window.attribuerEleve = async delta => {
   if(!selEleve) return;
   const e = EM[selEleve]; if(!e) return;
-  // Trouver l'équipe de cet élève
   const teamEntry = Object.entries(EQ).find(([,t])=>(t.eleves||[]).includes(selEleve));
   if(!teamEntry){ toast(`${e.p} n'a pas d'équipe ❌`,'err'); return; }
   const [teamId, t] = teamEntry;
@@ -1121,16 +1120,32 @@ window.attribuerEleve = async delta => {
   const label = `${e.p} ${e.n[0]}.`;
   const newPts = (t.points||0) + delta;
   const hKey = push(ref(db,'sejour/historique')).key;
-  const upd = {};
-  upd[`sejour/equipes/${teamId}/points`] = newPts;
-  upd[`sejour/historique/${hKey}`] = {
+  const hEntry = {
+    id: hKey,
     equipeId: teamId, equipeName: t.nom,
     delta, regle: regle || `Points élève`,
     eleveNom: label,
     userId: cu.login, userPrenom: cu.prenom, userColor: cu.color,
     ts: Date.now()
   };
-  await update(ref(db), upd);
+
+  // ── Mise à jour locale IMMÉDIATE ──
+  if(!EQ[teamId]) EQ[teamId] = {};
+  EQ[teamId].points = newPts;
+  if(!HI) HI = {};
+  HI[hKey] = hEntry;
+  rClass(); rAttr();
+
+  // ── Persistance Firebase ──
+  const upd = {};
+  upd[`sejour/equipes/${teamId}/points`] = newPts;
+  upd[`sejour/historique/${hKey}`] = { ...hEntry, id: undefined };
+  await update(ref(db), upd).catch(err => {
+    EQ[teamId].points = (t.points||0);
+    delete HI[hKey];
+    rClass(); rAttr();
+    toast('Erreur réseau ❌','err');
+  });
   const sign = delta>0?'+':'';
   toast(`${sign}${delta} pt${Math.abs(delta)>1?'s':''} → ${e.p} (${t.nom}) ✓`, delta>0?'ok':'');
 };
@@ -1141,15 +1156,30 @@ window.attribuer = async delta => {
   const regle = G('rsel')?.value || '';
   const newPts = (t.points||0) + delta;
   const hKey = push(ref(db,'sejour/historique')).key;
-  const upd = {};
-  upd[`sejour/equipes/${selTeam}/points`] = newPts;
-  upd[`sejour/historique/${hKey}`] = {
+  const hEntry = {
+    id: hKey,
     equipeId: selTeam, equipeName: t.nom,
     delta, regle,
     userId: cu.login, userPrenom: cu.prenom, userColor: cu.color,
     ts: Date.now()
   };
-  await update(ref(db), upd);
+
+  // ── Mise à jour locale IMMÉDIATE ──
+  EQ[selTeam].points = newPts;
+  if(!HI) HI = {};
+  HI[hKey] = hEntry;
+  rClass(); rAttr();
+
+  // ── Persistance Firebase ──
+  const upd = {};
+  upd[`sejour/equipes/${selTeam}/points`] = newPts;
+  upd[`sejour/historique/${hKey}`] = { ...hEntry, id: undefined };
+  await update(ref(db), upd).catch(err => {
+    EQ[selTeam].points = (t.points||0);
+    delete HI[hKey];
+    rClass(); rAttr();
+    toast('Erreur réseau ❌','err');
+  });
   const sign = delta>0?'+':'';
   toast(`${sign}${delta} pt${Math.abs(delta)>1?'s':''} → ${t.nom} ✓`, delta>0?'ok':'');
 };
