@@ -1733,7 +1733,8 @@ function renderChRooms() {
 
     // Critères pour le jour actif
     const day = (CK[id]||{})[`j${activeDayForRoom}`]||{};
-    const jourscore = chambreScoreJour(id, activeDayForRoom);
+    const critScore = CRITERES.filter((_,ci)=>!!day[`c${ci}`]).length;
+    const jourscore = critScore + (day.bonus||0);
     const criteresHtml = CRITERES.map((cr,ci)=>{
       const checked = !!day[`c${ci}`];
       return `<div class="crit-item" onclick="toggleCrit('${id}',${activeDayForRoom},${ci})">
@@ -1764,7 +1765,7 @@ function renderChRooms() {
       </div>
       <!-- Toggle critères -->
       <div class="ch-head" style="padding:8px 14px;border-top:1.5px solid var(--bg)" onclick="toggleCh('${id}')">
-        <span style="font-size:12px;font-weight:700;color:var(--primary);flex:1">📋 Critères · Jour ${activeDayForRoom} · ${jourscore}/${CRITERES.length} ✓</span>
+        <span style="font-size:12px;font-weight:700;color:var(--primary);flex:1">📋 Critères · Jour ${activeDayForRoom} · ${critScore}/${CRITERES.length}${(day.bonus||0)>0?` + ${day.bonus}⭐`:''} ✓</span>
         <div class="ch-arr" style="font-size:13px;margin-top:0">▼</div>
       </div>
       <div class="ch-body" style="padding:0 14px 14px">
@@ -1772,7 +1773,7 @@ function renderChRooms() {
         <div class="day-check-zone">
           <div class="day-check-head">
             <span class="day-check-lbl">Jour ${activeDayForRoom}</span>
-            <span class="day-check-pts">${jourscore}/${CRITERES.length}${(day.bonus||0)>0?` +${day.bonus}⭐`:''} ✓</span>
+            <span class="day-check-pts">${critScore}/${CRITERES.length}${(day.bonus||0)>0?` + ${day.bonus}⭐`:''} ✓</span>
           </div>
           ${criteresHtml}
           <!-- Zone bonus -->
