@@ -764,6 +764,23 @@ function rc() {
 }
 
 /* ═══ HELPERS DATA ═══ */
+
+/* ── Répliques des Bronzés font du ski ── */
+const BRONZES = [
+  { txt: "Oublie que t'as aucune chance, vas-y, fonce ! On sait jamais, sur un malentendu ça peut marcher.", perso: "Jean-Claude" },
+  { txt: "Je sais pas ce qui me retient de te casser la gueule… — La peur peut-être ? — Ouais, ça doit être ça !", perso: "Les Bronzés" },
+  { txt: "Vous savez ce qui va pas monsieur Dusse ? C'est le planté du bâton.", perso: "Le moniteur" },
+  { txt: "Moi j'ai acheté cet appartement du 15 au 30, si tout le monde dépasse d'une demi-journée, l'année prochaine je skie au mois de juillet !", perso: "Bernard" },
+  { txt: "Bon, dans une demi-heure je nous considère comme définitivement perdus.", perso: "Jean-Claude" },
+  { txt: "Copain, c'est son nom. On l'a appelé Copain comme cochon.", perso: "M. Guilain" },
+  { txt: "Quand te reverrais-je ? Pays merveilleux ! Où ceux qui s'aiment vivent à deux !", perso: "Jean-Claude" },
+  { txt: "Vous avez de la pâte ? Vous avez du sucre ? Avec la pâte vous faites une crêpe et vous mettez du sucre dessus !", perso: "Les Bronzés" },
+  { txt: "Je crois que toi et moi on a un peu le même problème, c'est-à-dire qu'on peut pas vraiment tout miser sur notre physique, surtout toi.", perso: "Jean-Claude" },
+  { txt: "— Tu m'aides pas là ? — Non, pas là, non…", perso: "Bernard & Jean-Claude" },
+  { txt: "— Bonjour, j'ai réservé une chambre. — Oui, et vous vous appelez ? — Jean-Claude, et vous ?", perso: "Jean-Claude à la réception" },
+  { txt: "Quel est le plus grand défaut de Bernard ? — Il est égoïste. — Ça n'a rien à voir avec le ski.", perso: "Popeye, Nathalie & Bernard" },
+];
+const randomBronzes = () => BRONZES[Math.floor(Math.random() * BRONZES.length)];
 function teamStats(id) {
   // Calcule les stats de départage depuis l'historique
   const hist = Object.values(HI).filter(h=>h.equipeId===id);
@@ -958,8 +975,17 @@ function rClass() {
     </div>`;
   }).join('');
 
-  G('cl-content').innerHTML = podHtml + `<div class="teams-list">${list}</div>`;
-}
+  const q = randomBronzes();
+  const quoteCard = `<div style="background:var(--card);border-radius:var(--r);box-shadow:var(--sh);
+    padding:12px 16px;margin-bottom:12px;border-left:4px solid #1a73e8;
+    display:flex;align-items:flex-start;gap:10px">
+    <span style="font-size:20px;flex-shrink:0">🎿</span>
+    <div>
+      <div style="font-size:13px;font-style:italic;color:var(--text);line-height:1.5">« ${esc(q.txt)} »</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:5px;font-weight:700">— ${esc(q.perso)} · Les Bronzés font du ski</div>
+    </div>
+  </div>`;
+  G('cl-content').innerHTML = quoteCard + podHtml + `<div class="teams-list">${list}</div>`;}
 
 window.toggleCl = id => {
   if(openCl.has(id)) openCl.delete(id); else openCl.add(id);
