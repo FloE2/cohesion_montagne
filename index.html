@@ -936,10 +936,9 @@ function rAttr() {
 
   G('at-content').innerHTML = toggle + body;
 
-  // Restore search input value without losing focus
+  // Remettre le focus sur l'input si on est en mode élève
   if(attrMode === 'eleve') {
-    const inp = G('eleve-search-inp');
-    if(inp){ inp.value = eleveSearch; }
+    setTimeout(()=>{ const i=G('eleve-search-inp'); if(i){ i.value=eleveSearch; i.focus(); } },0);
   }
 }
 
@@ -1073,12 +1072,10 @@ function rAttrEleve(teams) {
     }
   }
 
-  return `<div style="position:relative">
-    <input id="eleve-search-inp" class="eleve-search" placeholder="🔍 Chercher un élève (prénom, nom, classe…)"
-      oninput="onEleveSearch(this.value)" autocomplete="off" autocorrect="off" spellcheck="false">
-  </div>
-  <div class="eleve-results">${resultsHtml}</div>
-  ${formHtml}`;
+  return `<input id="eleve-search-inp" class="eleve-search" placeholder="🔍 Chercher un élève (prénom, nom, classe…)"
+    oninput="onEleveSearch(this.value)" autocomplete="off" autocorrect="off" spellcheck="false">
+  <div id="eleve-results" class="eleve-results">${resultsHtml}</div>
+  <div id="eleve-form-zone">${formHtml}</div>`;
 }
 
 
@@ -1096,17 +1093,90 @@ window.setAttrMode = mode => {
 window.onEleveSearch = val => {
   eleveSearch = val;
   selEleve = null;
-  rAttr();
-  // Remettre le curseur à la fin sans perdre le focus
-  const inp = G('eleve-search-inp');
-  if(inp){ inp.value = val; inp.setSelectionRange(val.length, val.length); }
+  // Met à jour uniquement les résultats et la zone formulaire — PAS l'input
+  const teams = sortedTeams();
+  const elevTeamIdx = {};
+  teams.forEach(t=>(t.eleves||[]).forEach(eid=>{ elevTeamIdx[eid]=t; }));
+  const query = val.toLowerCase().trim();
+
+  const resultsHtml = query.length < 1
+    ? `<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">Tape au moins 1 lettre pour chercher un élève</div>`
+    : (() => {
+        const filtered = ALL.filter(e=>(e.p+' '+e.n+' '+e.c).toLowerCase().includes(query));
+        if(!filtered.length) return `<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">Aucun élève trouvé</div>`;
+        return filtered.map(e=>{
+          const team = elevTeamIdx[e.id];
+          const col = team ? teamColor(team, teams.indexOf(team)) : null;
+          return `<div class="eleve-row" onclick="pickEleve('${e.id}')">
+            <div class="eleve-dot ${e.s}">${e.s==='G'?'♂':'♀'}</div>
+            <div class="eleve-info">
+              <div class="eleve-nom">${esc(e.p)} ${esc(e.n)}</div>
+              ${team
+                ? `<div class="eleve-team"><span style="width:8px;height:8px;border-radius:50%;background:${col};display:inline-block;margin-right:4px"></span>${esc(team.nom)}${team.responsable?' · 👤 '+esc(team.responsable):''} · ${esc(e.c)}</div>`
+                : `<div class="eleve-no-team">⚠️ Sans équipe · ${esc(e.c)}</div>`}
+            </div>
+          </div>`;
+        }).join('');
+      })();
+
+  const resDiv = G('eleve-results');
+  if(resDiv) resDiv.innerHTML = resultsHtml;
+  // Cache la zone formulaire quand on retape
+  const formDiv = G('eleve-form-zone');
+  if(formDiv) formDiv.innerHTML = '';
 };
 
 window.pickEleve = id => {
   selEleve = selEleve === id ? null : id;
-  rAttr();
-  const inp = G('eleve-search-inp');
-  if(inp){ inp.value = eleveSearch; }
+  // Met à jour visuellement la sélection dans la liste
+  document.querySelectorAll('.eleve-row').forEach(el => el.classList.remove('sel'));
+  if(selEleve) {
+    document.querySelectorAll('.eleve-row').forEach(el => {
+      if(el.getAttribute('onclick')?.includes(id)) el.classList.add('sel');
+    });
+  }
+  // Met à jour uniquement la zone formulaire
+  const teams = sortedTeams();
+  const elevTeamIdx = {};
+  teams.forEach(t=>(t.eleves||[]).forEach(eid=>{ elevTeamIdx[eid]=t; }));
+  const formDiv = G('eleve-form-zone');
+  if(!formDiv) return;
+  if(!selEleve){ formDiv.innerHTML=''; return; }
+  const e = EM[selEleve];
+  const team = elevTeamIdx[selEleve];
+  if(e && team) {
+    const col = teamColor(team, teams.indexOf(team));
+    const rgOpts = Object.entries(RG).map(([,r])=>
+      `<option value="${esc(r.texte)}">${esc(r.texte)}</option>`).join('');
+    formDiv.innerHTML = `
+      <div class="attr-lbl" style="margin-bottom:8px;margin-top:4px">ATTRIBUER DES POINTS</div>
+      <div class="sel-card" style="border-color:${col}">
+        <div style="width:14px;height:14px;border-radius:50%;background:${col};flex-shrink:0"></div>
+        <div style="flex:1">
+          <div class="sc-name">${esc(e.p)} ${esc(e.n)} <span style="font-size:12px;font-weight:600;color:var(--muted)">${e.c}</span></div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">Équipe : <strong style="color:${col}">${esc(team.nom)}</strong> · Total : <strong>${team.totalPts>0?'+':''}${team.totalPts} pts</strong></div>
+        </div>
+      </div>
+      <select class="rsel" id="rsel-eleve">
+        <option value="">✨ Points libres</option>
+        ${rgOpts}
+      </select>
+      <div>
+        <div class="pts-lbl" style="color:var(--green)">➕ AJOUTER</div>
+        <div class="pts-row">
+          ${[1,2,3].map(n=>`<button class="pbtn p" onclick="attribuerEleve(${n})">+${n}<span>pt${n>1?'s':''}</span></button>`).join('')}
+        </div>
+      </div>
+      <div>
+        <div class="pts-lbl" style="color:var(--red)">➖ RETIRER</div>
+        <div class="pts-row">
+          ${[1,2,3].map(n=>`<button class="pbtn m" onclick="attribuerEleve(-${n})">-${n}<span>pt${n>1?'s':''}</span></button>`).join('')}
+        </div>
+      </div>`;
+  } else if(e && !team) {
+    formDiv.innerHTML = `<div class="notsel" style="padding:16px"><div class="em">⚠️</div>
+      <p style="color:var(--red)">${esc(e.p)} n'est dans aucune équipe.<br>Assignez-le d'abord dans Admin.</p></div>`;
+  }
 };
 
 /* ── Attribuer points à un élève (→ équipe) ── */
