@@ -432,6 +432,9 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
       <button class="bnt" id="bnt-ski" onclick="showPanel('ski')">
         <span class="ic">⛷️</span>Ski
       </button>
+      <button class="bnt" id="bnt-appel" onclick="showPanel('appel')">
+        <span class="ic">✋</span>Appel
+      </button>
     </nav>
   </header>
 
@@ -453,6 +456,11 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
   <!-- SKI -->
   <div class="panel" id="panel-ski">
     <div id="ski-content"></div>
+  </div>
+
+  <!-- APPEL GARE -->
+  <div class="panel" id="panel-appel">
+    <div id="appel-content"></div>
   </div>
 
   <!-- PLANNING -->
@@ -645,8 +653,10 @@ let RG = {}; // règles
 let PW = {}; // passwords
 let CH = {}; // chambres
 let CK = {}; // chambre_checks
-let SK = {}; // ski_groupes
-let SKT= ''; // ski_tournant (enseignant photos)
+let SK  = {}; // ski_groupes
+let SKT = ''; // ski_tournant (enseignant photos)
+let AP  = {}; // appel_gare { arrivee:{id:'present'|'absent'}, depart:{...} }
+let appelJour = 'arrivee'; // 'arrivee' | 'depart'
 let lsns = [];
 let panelAct = 'classement';
 let adminTab = 'equipes';
@@ -751,9 +761,10 @@ function startApp() {
     if(panelAct !== 'classement' && G('cl-content')) rClass();
     if(panelAct !== 'attribuer'  && G('at-content')) rAttr();
   });
+  const u9 = onValue(ref(db,'sejour/appel_gare'), s=>{ AP=s.val()||{}; if(panelAct==='appel') rAppel(); });
   const u7 = onValue(ref(db,'sejour/ski_groupes'), s=>{ SK=s.val()||{}; if(panelAct==='ski') rSki(); });
   const u8 = onValue(ref(db,'sejour/ski_tournant'), s=>{ SKT=s.val()||''; if(panelAct==='ski') rSki(); });
-  lsns = [u1,u2,u3,u4,u5,u6,u7,u8];
+  lsns = [u1,u2,u3,u4,u5,u6,u7,u8,u9];
   showPanel('classement');
 }
 
@@ -774,6 +785,7 @@ function rc() {
   else if(panelAct==='chambres') rChambres();
   else if(panelAct==='planning') rPlanning();
   else if(panelAct==='ski') rSki();
+  else if(panelAct==='appel') rAppel();
 }
 
 /* ═══ HELPERS DATA ═══ */
@@ -2916,6 +2928,150 @@ window.addSkiEleve = async (toId) => {
   rSki();
   await update(ref(db), upd).catch(()=>{ toast('Erreur réseau ❌','err'); });
   toast(`${EM[eid]?.p||'Élève'} ajouté(e) au ${esc(to.nom)} ✓`,'ok');
+};
+
+/* ═══════════════════════════════════════
+   APPEL GARE
+   ═══════════════════════════════════════ */
+
+function rAppel() {
+  const jour = appelJour;
+  const data = (AP[jour] || {});
+  const total = ALL.length;
+  const presents  = ALL.filter(e => data[e.id] === 'present').length;
+  const absents   = ALL.filter(e => data[e.id] === 'absent').length;
+  const enAttente = total - presents - absents;
+
+  const jourLabel = jour === 'arrivee'
+    ? { titre:'Arrivée — Gare de Lyon', subtitle:'Lundi matin · Départ 7h13', ico:'🚂' }
+    : { titre:'Départ — Gare de Grenoble', subtitle:'Vendredi · Départ 16h45', ico:'🚆' };
+
+  const tabs = `<div style="display:flex;background:var(--bg);border-radius:12px;padding:4px;gap:4px;margin-bottom:12px">
+    <button style="flex:1;padding:8px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;
+      ${jour==='arrivee'?'background:var(--card);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.12)':'background:none;color:var(--muted)'}"
+      onclick="setAppelJour('arrivee')">🚂 Arrivée Lundi</button>
+    <button style="flex:1;padding:8px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;
+      ${jour==='depart'?'background:var(--card);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.12)':'background:none;color:var(--muted)'}"
+      onclick="setAppelJour('depart')">🚆 Départ Vendredi</button>
+  </div>`;
+
+  // Header stats
+  const header = `<div style="background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
+    border-radius:var(--r);padding:14px 16px;margin-bottom:12px">
+    <div style="font-size:11px;font-weight:700;opacity:.7;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">
+      ${jourLabel.ico} ${jourLabel.titre}
+    </div>
+    <div style="font-size:12px;opacity:.8;margin-bottom:12px">${jourLabel.subtitle}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div style="background:rgba(255,255,255,.15);border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:24px;font-weight:900">${presents}</div>
+        <div style="font-size:11px;opacity:.8">✅ Présents</div>
+      </div>
+      <div style="background:rgba(255,255,255,.15);border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:24px;font-weight:900;color:#fbbf24">${enAttente}</div>
+        <div style="font-size:11px;opacity:.8">⏳ En attente</div>
+      </div>
+      <div style="background:rgba(255,255,255,.15);border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:24px;font-weight:900;color:#f87171">${absents}</div>
+        <div style="font-size:11px;opacity:.8">❌ Absents</div>
+      </div>
+    </div>
+  </div>`;
+
+  // Reset button (admins only)
+  const resetBtn = cu&&cu.role==='admin' ? `<button onclick="resetAppel('${jour}')"
+    style="width:100%;padding:9px;background:#fee2e2;color:var(--red);border:1.5px solid #fca5a5;
+    border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;margin-bottom:12px">
+    🔄 Remettre à zéro cet appel
+  </button>` : '';
+
+  // Classes
+  const classes = ['6A','6B','6C'];
+  const classCards = classes.map(cl => {
+    const eleves = ALL.filter(e => e.c === cl);
+    const rows = eleves.map(e => {
+      const etat = data[e.id] || null;
+      const isPresent = etat === 'present';
+      const isAbsent  = etat === 'absent';
+      const isWaiting = !etat;
+
+      // Couleur de fond selon statut
+      const rowBg = isPresent ? '#f0fdf4' : isAbsent ? '#fef2f2' : '#fffbeb';
+      const borderCol = isPresent ? '#86efac' : isAbsent ? '#fca5a5' : '#fde68a';
+      const statusIco = isPresent ? '✅' : isAbsent ? '❌' : '⏳';
+
+      return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;
+        background:${rowBg};border-radius:10px;border:1.5px solid ${borderCol};margin-bottom:5px">
+        <span style="font-size:16px;flex-shrink:0">${statusIco}</span>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:${isWaiting?'900':'700'};
+            color:${isAbsent?'#b91c1c':isWaiting?'var(--text)':'var(--muted)'}">
+            ${esc(e.p)} ${esc(e.n)}
+            ${isAbsent?'<span style="font-size:10px;background:#fee2e2;color:#b91c1c;border-radius:6px;padding:1px 6px;margin-left:4px;font-weight:800">ABSENT</span>':''}
+          </div>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button onclick="setAppelEtat('${e.id}','${jour}','present')"
+            style="border:none;border-radius:7px;padding:5px 8px;cursor:pointer;font-size:12px;font-weight:800;
+            background:${isPresent?'#15803d':'var(--bg)'};color:${isPresent?'#fff':'var(--muted)'}">✓</button>
+          <button onclick="setAppelEtat('${e.id}','${jour}','absent')"
+            style="border:none;border-radius:7px;padding:5px 8px;cursor:pointer;font-size:12px;font-weight:800;
+            background:${isAbsent?'#b91c1c':'var(--bg)'};color:${isAbsent?'#fff':'var(--muted)'}">✕</button>
+          ${etat?`<button onclick="setAppelEtat('${e.id}','${jour}',null)"
+            style="border:none;border-radius:7px;padding:5px 8px;cursor:pointer;font-size:11px;font-weight:800;
+            background:var(--bg);color:var(--muted)" title="Effacer">↺</button>`:''}
+        </div>
+      </div>`;
+    }).join('');
+
+    const clPresents  = eleves.filter(e=>data[e.id]==='present').length;
+    const clAbsents   = eleves.filter(e=>data[e.id]==='absent').length;
+    const clEnAttente = eleves.length - clPresents - clAbsents;
+
+    return `<div style="background:var(--card);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:12px;overflow:hidden">
+      <div style="padding:12px 14px;display:flex;align-items:center;gap:10px;
+        border-bottom:1.5px solid var(--bg);background:${clEnAttente===0&&clAbsents===0?'#f0fdf4':'var(--card)'}">
+        <div style="font-size:16px;font-weight:900;color:var(--primary);min-width:32px">${cl}</div>
+        <div style="flex:1;font-size:13px;font-weight:700">${eleves.length} élèves</div>
+        <div style="display:flex;gap:6px;font-size:11px;font-weight:800">
+          <span style="color:#15803d">✅ ${clPresents}</span>
+          <span style="color:#b45309">⏳ ${clEnAttente}</span>
+          ${clAbsents?`<span style="color:#b91c1c">❌ ${clAbsents}</span>`:''}
+        </div>
+        ${clEnAttente===0&&clAbsents===0?'<span style="font-size:18px">🎉</span>':''}
+      </div>
+      <div style="padding:10px 10px 6px">${rows}</div>
+    </div>`;
+  }).join('');
+
+  G('appel-content').innerHTML = tabs + header + resetBtn + classCards;
+}
+
+window.setAppelJour = j => { appelJour=j; rAppel(); };
+
+window.setAppelEtat = async (eid, jour, etat) => {
+  // Mise à jour locale immédiate
+  if(!AP[jour]) AP[jour] = {};
+  if(etat === null) { delete AP[jour][eid]; }
+  else { AP[jour][eid] = etat; }
+  rAppel();
+
+  // Firebase
+  const path = `sejour/appel_gare/${jour}/${eid}`;
+  if(etat === null) {
+    remove(ref(db, path)).catch(()=>{ toast('Erreur réseau ❌','err'); });
+  } else {
+    set(ref(db, path), etat).catch(()=>{ toast('Erreur réseau ❌','err'); });
+  }
+};
+
+window.resetAppel = async (jour) => {
+  const label = jour==='arrivee' ? 'arrivée' : 'départ';
+  if(!confirm(`Remettre à zéro l'appel ${label} ?\nTous les statuts seront effacés.`)) return;
+  AP[jour] = {};
+  rAppel();
+  await remove(ref(db, `sejour/appel_gare/${jour}`)).catch(()=>{ toast('Erreur réseau ❌','err'); });
+  toast(`Appel ${label} remis à zéro ✓`, 'ok');
 };
 
 /* ═══ TOAST ═══ */
