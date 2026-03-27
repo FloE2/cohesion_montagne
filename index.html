@@ -414,26 +414,26 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
     <nav class="hnav" id="hnav" style="display:none">
       <!-- MÉTÉO CHAMROUSSE -->
       <div class="meteo-bar" id="meteo-bar" style="display:none"></div>
+      <button class="bnt" id="bnt-planning" onclick="showPanel('planning')">
+        <span class="ic">📅</span>Planning
+      </button>
       <button class="bnt active" id="bnt-classement" onclick="showPanel('classement')">
         <span class="ic">🏆</span>Classement
       </button>
       <button class="bnt" id="bnt-attribuer" onclick="showPanel('attribuer')">
         <span class="ic">➕</span>Points
       </button>
-      <button class="bnt" id="bnt-admin" onclick="showPanel('admin')" style="display:none">
-        <span class="ic">⚙️</span>Admin
-      </button>
       <button class="bnt" id="bnt-chambres" onclick="showPanel('chambres')">
         <span class="ic">🛏️</span>Chambres
-      </button>
-      <button class="bnt" id="bnt-planning" onclick="showPanel('planning')">
-        <span class="ic">📅</span>Planning
       </button>
       <button class="bnt" id="bnt-ski" onclick="showPanel('ski')">
         <span class="ic">⛷️</span>Ski
       </button>
       <button class="bnt" id="bnt-appel" onclick="showPanel('appel')">
         <span class="ic">✋</span>Appel
+      </button>
+      <button class="bnt" id="bnt-admin" onclick="showPanel('admin')" style="display:none">
+        <span class="ic">⚙️</span>Admin
       </button>
     </nav>
   </header>
