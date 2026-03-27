@@ -429,6 +429,9 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
       <button class="bnt" id="bnt-planning" onclick="showPanel('planning')">
         <span class="ic">📅</span>Planning
       </button>
+      <button class="bnt" id="bnt-ski" onclick="showPanel('ski')">
+        <span class="ic">⛷️</span>Ski
+      </button>
     </nav>
   </header>
 
@@ -445,6 +448,11 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
   <!-- ADMIN -->
   <div class="panel" id="panel-admin">
     <div id="ad-content"></div>
+  </div>
+
+  <!-- SKI -->
+  <div class="panel" id="panel-ski">
+    <div id="ski-content"></div>
   </div>
 
   <!-- PLANNING -->
@@ -637,6 +645,8 @@ let RG = {}; // règles
 let PW = {}; // passwords
 let CH = {}; // chambres
 let CK = {}; // chambre_checks
+let SK = {}; // ski_groupes
+let SKT= ''; // ski_tournant (enseignant photos)
 let lsns = [];
 let panelAct = 'classement';
 let adminTab = 'equipes';
@@ -741,7 +751,9 @@ function startApp() {
     if(panelAct !== 'classement' && G('cl-content')) rClass();
     if(panelAct !== 'attribuer'  && G('at-content')) rAttr();
   });
-  lsns = [u1,u2,u3,u4,u5,u6];
+  const u7 = onValue(ref(db,'sejour/ski_groupes'), s=>{ SK=s.val()||{}; if(panelAct==='ski') rSki(); });
+  const u8 = onValue(ref(db,'sejour/ski_tournant'), s=>{ SKT=s.val()||''; if(panelAct==='ski') rSki(); });
+  lsns = [u1,u2,u3,u4,u5,u6,u7,u8];
   showPanel('classement');
 }
 
@@ -761,6 +773,7 @@ function rc() {
   else if(panelAct==='admin') rAdmin();
   else if(panelAct==='chambres') rChambres();
   else if(panelAct==='planning') rPlanning();
+  else if(panelAct==='ski') rSki();
 }
 
 /* ═══ HELPERS DATA ═══ */
@@ -2694,6 +2707,214 @@ window.openMural = () => {
   const w = window.open('','_blank','width=1200,height=800');
   w.document.write(html);
   w.document.close();
+};
+
+/* ═══════════════════════════════════════
+   SKI — GROUPES ESF
+   ═══════════════════════════════════════ */
+
+const INIT_SKI = [
+  { id:'ski1', nom:'Groupe 1', niveau:'Avancé · Confirmé', enseignant:'',
+    eleves:['6A09','6B02','6B03','6B23','6B26','6A06','6A13','6A18','6A24','6B01','6B09','6A03'] },
+  { id:'ski2', nom:'Groupe 2', niveau:'Confirmé · Intermédiaire', enseignant:'',
+    eleves:['6A11','6A19','6C16','6B15','6B16','6B17','6B20','6B21','6A08','6A10','6A14','6A15'] },
+  { id:'ski3', nom:'Groupe 3', niveau:'Intermédiaire', enseignant:'',
+    eleves:['6A17','6A25','6C02','6C03','6C04','6C11','6C12','6C13','6C19','6C20','6C23','6B04'] },
+  { id:'ski4', nom:'Groupe 4', niveau:'Débutant', enseignant:'',
+    eleves:['6B05','6B06','6B07','6B08','6B10','6B11','6B12','6B13','6B14','6B18','6B19','6B22'] },
+  { id:'ski5', nom:'Groupe 5', niveau:'Débutant', enseignant:'',
+    eleves:['6B24','6B25','6A01','6A02','6A04','6A05','6A16','6A20','6A21','6A22','6C01','6C05'] },
+  { id:'ski6', nom:'Groupe 6', niveau:'Débutant', enseignant:'',
+    eleves:['6C06','6C07','6C08','6C09','6C14','6C15','6C17','6C18','6C21','6C22','6C24','6C25'] },
+];
+
+const SKI_COLORS = ['#e53935','#1e88e5','#388e3c','#f57c00','#7b1fa2','#0097a7'];
+
+let skiView = 'groupes'; // 'groupes' | 'admin'
+let openSki = new Set();
+
+async function initSkiSiVide() {
+  if(Object.keys(SK).length > 0) return;
+  const upd = {};
+  INIT_SKI.forEach(g=>{ upd[`sejour/ski_groupes/${g.id}`] = {nom:g.nom,niveau:g.niveau,enseignant:g.enseignant,eleves:g.eleves}; });
+  await update(ref(db), upd);
+  toast('Groupes ski initialisés ✓','ok');
+}
+
+/* ── Couleur groupe ski ── */
+function skiCol(id) {
+  const keys = Object.keys(SK).sort();
+  const idx = keys.indexOf(id);
+  return SKI_COLORS[idx % SKI_COLORS.length];
+}
+
+/* ═══ RENDER SKI ═══ */
+function rSki() {
+  const hasSk = Object.keys(SK).length > 0;
+  if(!hasSk) {
+    G('ski-content').innerHTML = `<div style="text-align:center;padding:30px 16px">
+      <div style="font-size:40px;margin-bottom:10px">⛷️</div>
+      <p style="font-size:14px;color:var(--muted);margin-bottom:16px">Groupes ski non configurés.</p>
+      ${cu&&cu.role==='admin'?`<button class="btn btn-p" style="margin:0 auto;display:block" onclick="initSkiSiVide()">⚡ Initialiser les groupes</button>`:''}
+    </div>`;
+    return;
+  }
+
+  /* Enseignant tournant */
+  const tournantHtml = `<div style="background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
+    border-radius:var(--r);padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;gap:10px">
+    <span style="font-size:20px">📸</span>
+    <div style="flex:1">
+      <div style="font-size:11px;font-weight:700;opacity:.7;text-transform:uppercase;letter-spacing:.8px">Enseignant tournant · Photos &amp; Vidéos</div>
+      <div style="font-size:15px;font-weight:900;margin-top:2px">${SKT ? esc(SKT) : '<span style="opacity:.6;font-style:italic;font-weight:400">Non renseigné</span>'}</div>
+    </div>
+    ${cu&&cu.role==='admin'?`<button onclick="editTournant()" style="border:1.5px solid rgba(255,255,255,.4);background:none;color:#fff;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12px;font-weight:700">✏️</button>`:''}
+  </div>`;
+
+  const tabs = `<div style="display:flex;background:var(--bg);border-radius:12px;padding:4px;gap:4px;margin-bottom:12px">
+    <button style="flex:1;padding:8px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;
+      ${skiView==='groupes'?'background:var(--card);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.12)':'background:none;color:var(--muted)'}"
+      onclick="setSkiView('groupes')">⛷️ Groupes</button>
+    ${cu&&cu.role==='admin'?`<button style="flex:1;padding:8px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;
+      ${skiView==='admin'?'background:var(--card);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.12)':'background:none;color:var(--muted)'}"
+      onclick="setSkiView('admin')">⚙️ Gérer</button>`:''}
+  </div>`;
+
+  let body = skiView==='groupes' ? renderSkiGroupes() : renderSkiAdmin();
+  G('ski-content').innerHTML = tournantHtml + tabs + body;
+}
+
+function renderSkiGroupes() {
+  const sorted = Object.entries(SK).sort((a,b)=>a[0].localeCompare(b[0]));
+  const allAssigned = new Set(Object.values(SK).flatMap(g=>g.eleves||[]));
+  const unassigned = ALL.filter(e=>!allAssigned.has(e.id));
+
+  const cards = sorted.map(([id,g])=>{
+    const col = skiCol(id);
+    const eleves = (g.eleves||[]).map(eid=>EM[eid]).filter(Boolean);
+    const isOpen = openSki.has(id);
+    const elevesHtml = eleves.map(e=>`<span class="ch-e ${e.s}" style="margin:2px">${e.s==='G'?'♂':'♀'} ${esc(e.p)}.${esc(e.n[0])} <span style="font-size:9px;opacity:.65">${e.c}</span></span>`).join('');
+    return `<div class="ch-card ${isOpen?'open':''}" style="border-color:${col}">
+      <div style="padding:12px 14px 8px;display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:50%;background:${col};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;flex-shrink:0">
+          ${Object.keys(SK).sort().indexOf(id)+1}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14px;font-weight:800">${esc(g.nom)}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:1px">${esc(g.niveau||'')} · ${eleves.length} élèves</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-size:12px;font-weight:700;color:${col}">${g.enseignant?'👤 '+esc(g.enseignant):'<span style="color:var(--muted);font-style:italic">Enseignant ?</span>'}</div>
+        </div>
+      </div>
+      <div style="padding:0 14px 10px;display:flex;flex-wrap:wrap;gap:4px">
+        ${elevesHtml||'<span style="font-size:11px;color:var(--muted);font-style:italic">Aucun élève</span>'}
+      </div>
+    </div>`;
+  }).join('');
+
+  const unassHtml = unassigned.length ? `<div style="background:var(--card);border-radius:var(--r);padding:12px 14px;box-shadow:var(--sh);border-left:4px solid var(--red)">
+    <div style="font-size:12px;font-weight:800;color:var(--red);margin-bottom:8px">⚠️ Non assignés (${unassigned.length})</div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px">${unassigned.map(e=>`<span class="ch-e ${e.s}">${esc(e.p)}.${esc(e.n[0])} ${e.c}</span>`).join('')}</div>
+  </div>` : '';
+
+  return `<div style="display:flex;flex-direction:column;gap:10px">${cards}</div>${unassHtml?'<div style="margin-top:10px">'+unassHtml+'</div>':''}`;
+}
+
+function renderSkiAdmin() {
+  const sorted = Object.entries(SK).sort((a,b)=>a[0].localeCompare(b[0]));
+  const allAssigned = new Set(Object.values(SK).flatMap(g=>g.eleves||[]));
+  const unassigned = ALL.filter(e=>!allAssigned.has(e.id));
+
+  const cards = sorted.map(([id,g])=>{
+    const col = skiCol(id);
+    const eleves = (g.eleves||[]).map(eid=>EM[eid]).filter(Boolean);
+    const unassOpts = ALL.filter(e=>!allAssigned.has(e.id)||g.eleves?.includes(e.id))
+      .map(e=>`<option value="${e.id}">${esc(e.p)} ${esc(e.n)} (${e.c})</option>`).join('');
+    const moveOpts = sorted.filter(([oid])=>oid!==id)
+      .map(([oid,og])=>`<option value="${oid}">${esc(og.nom)}</option>`).join('');
+
+    const elevesList = eleves.map(e=>`
+      <div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--bg)">
+        <span class="ch-e ${e.s}" style="flex:1">${e.s==='G'?'♂':'♀'} ${esc(e.p)}.${esc(e.n[0])} ${esc(e.n)} <span style="font-size:9px;opacity:.7">${e.c}</span></span>
+        <select onchange="moveSkiEleve('${e.id}','${id}',this.value);this.value=''"
+          style="font-size:11px;padding:3px 6px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg);cursor:pointer;max-width:110px">
+          <option value="">→ Changer</option>
+          ${moveOpts}
+        </select>
+      </div>`).join('');
+
+    return `<div style="background:var(--card);border-radius:var(--r);padding:14px;box-shadow:var(--sh);margin-bottom:10px;border-left:4px solid ${col}">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div style="width:28px;height:28px;border-radius:50%;background:${col};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex-shrink:0">${Object.keys(SK).sort().indexOf(id)+1}</div>
+        <div style="flex:1;font-size:13px;font-weight:800">${esc(g.nom)} <span style="font-size:11px;font-weight:400;color:var(--muted)">${eleves.length} élèves</span></div>
+      </div>
+      <!-- Enseignant -->
+      <div style="display:flex;gap:6px;margin-bottom:10px;align-items:center">
+        <span style="font-size:11px;font-weight:700;color:var(--muted);flex-shrink:0">👤 Enseignant :</span>
+        <input id="ski-ens-${id}" value="${esc(g.enseignant||'')}" placeholder="Nom de l'enseignant…"
+          style="flex:1;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:12px"
+          onchange="saveSkiEnseignant('${id}',this.value)">
+      </div>
+      <!-- Liste élèves -->
+      ${elevesList||'<div style="font-size:12px;color:var(--muted);font-style:italic;margin-bottom:8px">Aucun élève</div>'}
+      <!-- Ajouter depuis non-assignés -->
+      ${unassigned.length?`<div style="display:flex;gap:6px;margin-top:8px">
+        <select id="ski-add-${id}" style="flex:1;padding:7px;border:1.5px solid var(--border);border-radius:8px;font-size:12px">
+          <option value="">+ Ajouter un élève non assigné…</option>
+          ${unassigned.map(e=>`<option value="${e.id}">${esc(e.p)} ${esc(e.n)} (${e.c})</option>`).join('')}
+        </select>
+        <button onclick="addSkiEleve('${id}')" style="padding:7px 12px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:12px">+</button>
+      </div>`:''}
+    </div>`;
+  }).join('');
+
+  return cards;
+}
+
+/* ── Actions ski ── */
+window.setSkiView  = v => { skiView=v; rSki(); };
+window.initSkiSiVide = () => initSkiSiVide();
+
+window.saveSkiEnseignant = async (id, val) => {
+  await update(ref(db,`sejour/ski_groupes/${id}`), {enseignant: val.trim()});
+  toast('Enseignant mis à jour ✓','ok');
+};
+
+window.editTournant = () => {
+  const v = prompt('Enseignant tournant (photos/vidéos) :', SKT||'');
+  if(v === null) return;
+  set(ref(db,'sejour/ski_tournant'), v.trim());
+  toast('Enseignant tournant mis à jour ✓','ok');
+};
+
+window.moveSkiEleve = async (eid, fromId, toId) => {
+  if(!toId) return;
+  const from = SK[fromId]; const to = SK[toId];
+  if(!from||!to) return;
+  const upd = {};
+  upd[`sejour/ski_groupes/${fromId}/eleves`] = (from.eleves||[]).filter(x=>x!==eid);
+  upd[`sejour/ski_groupes/${toId}/eleves`]   = [...(to.eleves||[]), eid];
+  // Mise à jour locale immédiate
+  SK[fromId].eleves = (from.eleves||[]).filter(x=>x!==eid);
+  SK[toId].eleves   = [...(to.eleves||[]), eid];
+  rSki();
+  await update(ref(db), upd).catch(()=>{ toast('Erreur réseau ❌','err'); });
+  const e = EM[eid];
+  toast(`${e?e.p:'Élève'} → ${esc(to.nom)} ✓`,'ok');
+};
+
+window.addSkiEleve = async (toId) => {
+  const sel = G(`ski-add-${toId}`);
+  if(!sel?.value) return;
+  const eid = sel.value;
+  const to = SK[toId]; if(!to) return;
+  const upd = {};
+  upd[`sejour/ski_groupes/${toId}/eleves`] = [...(to.eleves||[]), eid];
+  SK[toId].eleves = [...(to.eleves||[]), eid];
+  rSki();
+  await update(ref(db), upd).catch(()=>{ toast('Erreur réseau ❌','err'); });
+  toast(`${EM[eid]?.p||'Élève'} ajouté(e) au ${esc(to.nom)} ✓`,'ok');
 };
 
 /* ═══ TOAST ═══ */
