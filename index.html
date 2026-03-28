@@ -356,13 +356,22 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
 .pl-my-ico{font-size:26px;flex-shrink:0}
 /* ═══ MÉTÉO ═══ */
 .meteo-bar{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.12);
-  border-radius:10px;padding:6px 12px;margin:0 0 12px;flex-wrap:wrap}
+  border-radius:10px;padding:6px 12px;margin:0 0 12px;flex-wrap:wrap;cursor:pointer}
 .meteo-ico{font-size:20px;flex-shrink:0}
 .meteo-temp{font-size:18px;font-weight:900;color:#fff}
 .meteo-detail{display:flex;gap:10px;flex-wrap:wrap}
 .meteo-pill{font-size:11px;color:rgba(255,255,255,.85);display:flex;align-items:center;gap:3px;
   background:rgba(255,255,255,.1);border-radius:6px;padding:2px 7px}
 .meteo-loading{font-size:11px;color:rgba(255,255,255,.6);font-style:italic}
+/* Prévisions 4 jours */
+.meteo-forecast{display:none;background:rgba(0,0,0,.2);border-radius:10px;padding:10px 12px;
+  margin:0 0 12px;grid-template-columns:repeat(4,1fr);gap:8px}
+.meteo-forecast.open{display:grid}
+.meteo-day{background:rgba(255,255,255,.1);border-radius:8px;padding:8px 6px;text-align:center}
+.meteo-day-nom{font-size:10px;font-weight:700;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.meteo-day-ico{font-size:18px;margin:2px 0}
+.meteo-day-max{font-size:14px;font-weight:900;color:#fff}
+.meteo-day-min{font-size:11px;color:rgba(255,255,255,.6);margin-top:1px}
 </style>
 </head>
 <body>
@@ -413,7 +422,8 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
     </div>
     <nav class="hnav" id="hnav" style="display:none">
       <!-- MÉTÉO CHAMROUSSE -->
-      <div class="meteo-bar" id="meteo-bar" style="display:none"></div>
+      <div class="meteo-bar" id="meteo-bar" style="display:none" onclick="toggleForecast()"></div>
+      <div class="meteo-forecast" id="meteo-forecast"></div>
       <button class="bnt" id="bnt-planning" onclick="showPanel('planning')">
         <span class="ic">📅</span>Planning
       </button>
@@ -2743,28 +2753,72 @@ const METEO_LABELS = {
   95:'Orage',96:'Orage grêle',99:'Orage grêle fort',
 };
 
+const JOURS_FR = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
+let forecastOpen = false;
+
+window.toggleForecast = () => {
+  forecastOpen = !forecastOpen;
+  const f = G('meteo-forecast');
+  if(f) forecastOpen ? f.classList.add('open') : f.classList.remove('open');
+  const bar = G('meteo-bar');
+  if(bar) {
+    const arrow = bar.querySelector('#meteo-arrow');
+    if(arrow) arrow.textContent = forecastOpen ? '▲' : '▼';
+  }
+};
+
 async function fetchMeteo() {
   try {
-    const url = 'https://api.open-meteo.com/v1/forecast?latitude=45.12&longitude=5.88&elevation=1650&current=temperature_2m,wind_speed_10m,snowfall,weather_code&wind_speed_unit=kmh&timezone=Europe/Paris';
+    const url = 'https://api.open-meteo.com/v1/forecast?latitude=45.12&longitude=5.88&elevation=1650'
+      + '&current=temperature_2m,weather_code'
+      + '&daily=weather_code,temperature_2m_max,temperature_2m_min,snowfall_sum'
+      + '&forecast_days=5&timezone=Europe%2FParis';
     const r = await fetch(url);
     const d = await r.json();
     const c = d.current;
-    const code = c.weather_code;
-    const ico  = METEO_CODES[code] || '🏔️';
-    const label = METEO_LABELS[code] || '';
+    const daily = d.daily;
+
+    // Barre actuelle
+    const ico   = METEO_CODES[c.weather_code] || '🏔️';
+    const label = METEO_LABELS[c.weather_code] || '';
     const temp  = Math.round(c.temperature_2m);
-    const wind  = Math.round(c.wind_speed_10m);
-    const snow  = c.snowfall > 0 ? `❄️ ${c.snowfall.toFixed(1)} cm` : null;
-    const bar = G('meteo-bar');
+    const bar   = G('meteo-bar');
     if(!bar) return;
     bar.style.display = 'flex';
+    bar.style.justifyContent = 'space-between';
     bar.innerHTML = `
-      <span class="meteo-ico">${ico}</span>
-      <span class="meteo-temp">${temp}°C</span>
-      <span class="meteo-pill" style="font-size:11px;color:rgba(255,255,255,.85);background:rgba(255,255,255,.1);border-radius:6px;padding:2px 7px">${label}</span>`;
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="meteo-ico">${ico}</span>
+        <span class="meteo-temp">${temp}°C</span>
+        <span class="meteo-pill">${label}</span>
+      </div>
+      <span id="meteo-arrow" style="font-size:10px;color:rgba(255,255,255,.6);margin-left:6px">${forecastOpen?'▲':'▼'}</span>`;
+
+    // Prévisions 4 jours (j+1 à j+4)
+    const forecast = G('meteo-forecast');
+    if(!forecast || !daily) return;
+    const days = daily.time.slice(1, 5).map((date, i) => {
+      const idx  = i + 1;
+      const code = daily.weather_code[idx];
+      const dIco = METEO_CODES[code] || '🏔️';
+      const max  = Math.round(daily.temperature_2m_max[idx]);
+      const min  = Math.round(daily.temperature_2m_min[idx]);
+      const snow = daily.snowfall_sum[idx];
+      const d2   = new Date(date);
+      const nom  = JOURS_FR[d2.getDay()];
+      return `<div class="meteo-day">
+        <div class="meteo-day-nom">${nom}</div>
+        <div class="meteo-day-ico">${dIco}</div>
+        <div class="meteo-day-max">${max}°</div>
+        <div class="meteo-day-min">${min}°${snow>0?` · ❄️${snow.toFixed(0)}cm`:''}</div>
+      </div>`;
+    }).join('');
+    forecast.innerHTML = days;
+    if(forecastOpen) forecast.classList.add('open');
+
   } catch(e) {
     const bar = G('meteo-bar');
-    if(bar) { bar.style.display='flex'; bar.innerHTML='<span class="meteo-loading">Météo indisponible</span>'; }
+    if(bar){ bar.style.display='flex'; bar.innerHTML='<span class="meteo-loading">Météo indisponible</span>'; }
   }
 }
 
