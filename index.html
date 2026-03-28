@@ -632,6 +632,81 @@ const ALL = [
 // Index rapide élèves
 const EM = {};
 ALL.forEach(e => EM[e.id] = e);
+/* ═══ CONTACTS D'URGENCE (source : Annexe 3 officielle) ═══ */
+const CONTACTS = {
+  '6A06': { resp:'Mme DEVILLE Laure',         tel:'0698043291' },
+  '6A09': { resp:'M. FRITZ Nicolas',           tel:'0663055849' },
+  '6A11': { resp:'Mme HEBRE Patricia',         tel:'0625153089' },
+  '6A13': { resp:'Mme IRIMIA Aurelia',         tel:'0618521589' },
+  '6A14': { resp:'Mme SOREIL Christelle',      tel:'0761620998' },
+  '6A15': { resp:'Mme JOYEUX Delphine',        tel:'0650026445' },
+  '6A16': { resp:'Mme NOUMBI NDONGO Ursule',   tel:'0645921012' },
+  '6A20': { resp:'Mme SAKHO Oumou',            tel:'0695923354' },
+  '6A22': { resp:'Mme SOUSA NASCIMENTO Leticia', tel:'0659987594' },
+  '6A24': { resp:'Mme DENEUX Carine',          tel:'0688335715' },
+  '6B07': { resp:'Mme DORE Séverine',          tel:'0684291362' },
+  '6B09': { resp:'Mme EYMAR Sophie',           tel:'0678120456' },
+  '6B11': { resp:'Mme TSHIMANGA Aubiege',      tel:'0612747079' },
+  '6B12': { resp:'Mme CORVÉE Sophie',          tel:'0644949494' },
+  '6B13': { resp:'Mme LEGO Julia',             tel:'0660510933' },
+  '6B15': { resp:'Mme MESNIL Alexandra',       tel:'0619804689' },
+  '6B16': { resp:'Mme GIGNAC Patricia',        tel:'0699738452' },
+  '6B17': { resp:'Mme MACHEBOEUF Amélie',      tel:'0750828128' },
+  '6B22': { resp:'Mme MATRAGRANO Stéphanie',   tel:'0617718144' },
+  '6B24': { resp:'Mme VARZIELA Susana',        tel:'0634153811' },
+  '6B25': { resp:'Mme DONAIN Gwendoline',      tel:'0763317670' },
+  '6B26': { resp:'M. WAISMAN Jonathan',        tel:'0615549803' },
+  '6C04': { resp:'Mme COGNET Marine',          tel:'0687282730' },
+  '6C08': { resp:'Mme GUILLAUMOT Mandy',       tel:'0650881321' },
+  '6C11': { resp:'Mme CAVALON Flora',          tel:'0664692265' },
+  '6C13': { resp:'M. HAMON Pascal',            tel:'0681674061' },
+  '6C17': { resp:'Mme GRILLEA Elodie',         tel:'0651685476' },
+  '6C18': { resp:'Mme RESTA Alexandrine',      tel:'0611310017' },
+  '6C20': { resp:'Mme PATRY Elodie',           tel:'0670710168' },
+  '6C21': { resp:'Mme RASSAA Rim',             tel:'0698725841' },
+  '6C23': { resp:'M. RICHER Ludovic',          tel:'0673181127' },
+  '6A01': { resp:'M. ALLAOUI Mohamed',         tel:'0660112511' },
+  '6A02': { resp:'Mme ATSOULI Ilham',          tel:'0767837894' },
+  '6A03': { resp:'Mme RITTER Laetitia',        tel:'0630080379' },
+  '6A04': { resp:'Mme DELOR Julie',            tel:'0610921753' },
+  '6A05': { resp:'Mme MORIN BATTISTON Faustine', tel:'0616830185' },
+  '6A08': { resp:'Mme ROUSSET Laure',          tel:'0663730618' },
+  '6A10': { resp:'M. GERNIGON David',          tel:'0683876279' },
+  '6A17': { resp:'Mme FILLOL Florie',          tel:'0664421389' },
+  '6A18': { resp:'Mme PIERROT Daphné',         tel:'0648098869' },
+  '6A19': { resp:'Mme ROUGIER Fabienne',       tel:'0618958631' },
+  '6A21': { resp:'Mme SILVA VIEIRA Caroline',  tel:'0668762734' },
+  '6A25': { resp:'Mme WATHLE Caroline',        tel:'0682566956' },
+  '6B01': { resp:'Mme BERROUANE-HAVEZ Julia',  tel:'0638258031' },
+  '6B02': { resp:'Mme BRACONNIER Agathe',      tel:'0615095771' },
+  '6B03': { resp:'Mme CHILA Anne',             tel:'0660746841' },
+  '6B04': { resp:'Mme DEKKICHE Djahida',       tel:'0682730245' },
+  '6B05': { resp:'Mme ROUSSET Laure',          tel:'0663730618' },
+  '6B06': { resp:'Mme DIABATE Fanta',          tel:'0783456536' },
+  '6B08': { resp:'Mme DRIOUCHE Tohfa',         tel:'0616928129' },
+  '6B10': { resp:'M. FAYE Sébastien',          tel:'0681782398' },
+  '6B14': { resp:'Mme MCHANGAMA Hadidja',      tel:'0751802321' },
+  '6B18': { resp:'M. MESSIER Steven',          tel:'0663087485' },
+  '6B19': { resp:'M. MOREAU Sébastien',        tel:'0684320949' },
+  '6B20': { resp:'Mme PRIESTER Helene',        tel:'0661491364' },
+  '6B21': { resp:'Mme ROUGIER Fabienne',       tel:'0618958631' },
+  '6B23': { resp:'Mme REQUIER Julie',          tel:'0612223853' },
+  '6C01': { resp:'Mme ABALDONATO Aurélie',     tel:'0601107412' },
+  '6C02': { resp:'Mme BEAULIEU Carole',        tel:'0636978353' },
+  '6C03': { resp:'Mme DEVILLE Laure',          tel:'0698043291' },
+  '6C05': { resp:"Mme LIBERSAC Marion",        tel:'0607797847' },
+  '6C06': { resp:'Mme LE DORE Camille',        tel:'0699689860' },
+  '6C07': { resp:'Mme FAYEL Fatoumata',        tel:'0622146911' },
+  '6C09': { resp:'Mme HENEINI Hiba',           tel:'0688788724' },
+  '6C12': { resp:'Mme FROVILLE Karine',        tel:'0665858547' },
+  '6C14': { resp:'Mme KAHWATI Magali',         tel:'0617773584' },
+  '6C15': { resp:'Mme LEJEUNE Karen',          tel:'0687576244' },
+  '6C16': { resp:'M. LEMAIGRE Mathieu',        tel:'0612913759' },
+  '6C19': { resp:'Mme HAUBENSACK Florence',    tel:'0672470877' },
+  '6C22': { resp:'M. FAYSOL Md',              tel:'0783082098' },
+  '6C24': { resp:'M. RODRIGUEZ Camille',       tel:'0661536107' },
+  '6C25': { resp:'Mme SOURDEIX Manon',         tel:'0635438091' },
+};
 
 /* ═══ STATE ═══ */
 const G = id => document.getElementById(id);
@@ -1381,11 +1456,13 @@ function rAdmin() {
     <button class="atab ${adminTab==='equipes'?'active':''}" onclick="setATab('equipes')">🏔️ Équipes</button>
     <button class="atab ${adminTab==='regles'?'active':''}" onclick="setATab('regles')">⭐ Règles d'or</button>
     <button class="atab ${adminTab==='comptes'?'active':''}" onclick="setATab('comptes')">👥 Comptes</button>
+    <button class="atab ${adminTab==='urgences'?'active':''}" onclick="setATab('urgences')">🆘 Urgences</button>
   </div>`;
   let body = '';
   if(adminTab==='equipes') body = aEquipes();
   else if(adminTab==='regles') body = aRegles();
   else if(adminTab==='comptes') body = aComptes();
+  else if(adminTab==='urgences') body = aUrgences();
   G('ad-content').innerHTML = tabs + body;
 }
 window.setATab = t => { adminTab=t; rAdmin(); };
@@ -1526,6 +1603,55 @@ window.saveRename = async () => {
   await update(ref(db,`sejour/equipes/${renameId}`),{nom,responsable});
   closeMo('mo-ren'); renameId=null;
   toast('Équipe modifiée ✓','ok');
+};
+
+/* ── Admin Urgences ── */
+let urgenceSearch = '';
+function aUrgences() {
+  const q = urgenceSearch.toLowerCase().trim();
+  const filtered = q.length >= 1
+    ? ALL.filter(e=>(e.p+' '+e.n+' '+e.c).toLowerCase().includes(q))
+    : ALL;
+
+  const rows = filtered.map(e=>{
+    const c = CONTACTS[e.id];
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bg)">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:800">${esc(e.p)} ${esc(e.n)} <span style="font-size:11px;font-weight:400;color:var(--muted)">${e.c}</span></div>
+        ${c
+          ? `<div style="font-size:12px;color:var(--muted);margin-top:2px">👤 ${esc(c.resp)}</div>`
+          : `<div style="font-size:11px;color:var(--red);font-style:italic">Non participant au voyage</div>`}
+      </div>
+      ${c
+        ? `<a href="tel:${c.tel}" style="display:flex;align-items:center;gap:6px;padding:8px 14px;
+            background:#dcfce7;color:#15803d;border-radius:10px;font-size:13px;font-weight:800;
+            text-decoration:none;flex-shrink:0;border:1.5px solid #86efac">
+            📞 ${c.tel.replace(/(\d{2})(?=\d)/g,'$1 ')}
+          </a>`
+        : ''}
+    </div>`;
+  }).join('');
+
+  return `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;padding:10px 14px;
+    margin-bottom:12px;font-size:12px;color:#856404;line-height:1.5">
+    🔒 <strong>Données confidentielles</strong> — Réservé aux admins · Ne pas diffuser
+  </div>
+  <div style="position:relative;margin-bottom:12px">
+    <input id="urgence-search" value="${esc(urgenceSearch)}" placeholder="🔍 Chercher un élève…"
+      oninput="filterUrgences(this.value)"
+      style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;outline:none">
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:8px">${filtered.length} élève${filtered.length!==1?'s':''} — cliquez sur le numéro pour appeler directement</div>
+  <div style="background:var(--card);border-radius:var(--r);padding:0 14px;box-shadow:var(--sh)">
+    ${rows||'<div style="padding:20px;text-align:center;color:var(--muted)">Aucun résultat</div>'}
+  </div>`;
+}
+
+window.filterUrgences = val => {
+  urgenceSearch = val;
+  rAdmin();
+  // Restore focus
+  setTimeout(()=>{ const i=G('urgence-search'); if(i){ i.value=val; i.focus(); i.setSelectionRange(val.length,val.length); }},0);
 };
 
 /* ── Admin Règles ── */
