@@ -642,6 +642,13 @@ const ALL = [
 // Index rapide élèves
 const EM = {};
 ALL.forEach(e => EM[e.id] = e);
+/* ── Affichage nom : complet pour les doublons de prénom+initiale ── */
+const FULL_NAME_IDS = new Set(['6A05','6B02','6A08','6C06']); // Jules.C×2, Oscar.D×2
+function displayName(e) {
+  if(FULL_NAME_IDS.has(e.id)) return `${esc(e.p)} ${esc(e.n)}`;
+  return `${displayName(e)}`;
+}
+
 /* ═══ CONTACTS D'URGENCE (source : Annexe 3 officielle) ═══ */
 const CONTACTS = {
   '6A06': { resp:'Mme DEVILLE Laure',         tel:'0698043291' },
@@ -1026,7 +1033,7 @@ function rClass() {
         : `<span style="color:var(--red);font-size:18px;font-weight:900;line-height:1;flex-shrink:0" title="Dernière action : ${lastDelta}">▼</span>`;
 
     const stuHtml = elevs.length
-      ? elevs.map(e=>`<span class="stag ${e.s}">${e.s==='G'?'♂':'♀'} ${esc(e.p)}.${esc(e.n[0])}</span>`).join('')
+      ? elevs.map(e=>`<span class="stag ${e.s}">${e.s==='G'?'♂':'♀'} ${displayName(e)}</span>`).join('')
       : '<span style="color:var(--muted);font-size:12px;font-style:italic">Aucun élève assigné</span>';
 
     const histHtml = hist.length
@@ -1156,7 +1163,7 @@ function rAttrEquipe(teams) {
     const pts = t.totalPts;
     const isSel = selTeam===t.id;
     const elevs = (t.eleves||[]).map(id=>EM[id]).filter(Boolean);
-    const elevStr = elevs.map(e=>`${esc(e.p)}.${esc(e.n[0])}`).join(' · ');
+    const elevStr = elevs.map(e=>`${displayName(e)}`).join(' · ');
     return `<div class="tsel ${isSel?'sel':''}"
       style="${isSel?`border-color:${c};background:${c}14`:''}"
       onclick="pickTeam('${t.id}')">
@@ -1511,7 +1518,7 @@ function aEquipes() {
       <div class="eqa-body">
         ${elevs.length ? elevs.map(e=>`
           <div class="sm-s">
-            <span class="stag ${e.s}" style="font-size:11px">${e.s==='G'?'♂':'♀'} ${esc(e.p)}.${esc(e.n[0])} ${esc(e.n)}</span>
+            <span class="stag ${e.s}" style="font-size:11px">${e.s==='G'?'♂':'♀'} ${displayName(e)} ${esc(e.n)}</span>
             <span style="font-size:11px;color:var(--muted);margin-left:2px">${e.c}</span>
             <button class="sm-del" onclick="event.stopPropagation();rmFromTeam('${t.id}','${e.id}')" title="Retirer">✕</button>
           </div>`).join('')
@@ -1985,7 +1992,7 @@ function renderChRooms() {
 
     // Élèves — toujours visibles
     const elevesHtml = eleves.length
-      ? eleves.map(e=>`<span class="ch-e ${e.s}">${e.s==='G'?'♂':'♀'} ${esc(e.p)}.${esc(e.n[0])} <span style="font-size:9px;opacity:.65">${e.c}</span></span>`).join('')
+      ? eleves.map(e=>`<span class="ch-e ${e.s}">${e.s==='G'?'♂':'♀'} ${displayName(e)} <span style="font-size:9px;opacity:.65">${e.c}</span></span>`).join('')
       : '<span style="font-size:11px;color:var(--muted);font-style:italic">Aucun élève assigné</span>';
 
     // Day tabs
@@ -2131,7 +2138,7 @@ function renderChAdmin() {
     const col = c.genre==='G'?'#3b82f6':'#ec4899';
     const elevesList = eleves.map(e=>`
       <div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--bg)">
-        <span class="ch-e ${e.s}" style="flex:1">${e.s==='G'?'♂':'♀'} ${esc(e.p)}.${esc(e.n[0])} ${esc(e.n)} <span style="font-size:9px;opacity:.7">${e.c}</span></span>
+        <span class="ch-e ${e.s}" style="flex:1">${e.s==='G'?'♂':'♀'} ${displayName(e)} ${esc(e.n)} <span style="font-size:9px;opacity:.7">${e.c}</span></span>
         <button style="border:none;background:none;color:var(--red);cursor:pointer;font-size:16px;padding:0 4px;font-weight:900" onclick="rmFromChambre('${id}','${e.id}')" title="Retirer">✕</button>
       </div>`).join('');
     const addOpts = unassMatching.map(e=>`<option value="${e.id}">${e.p} ${e.n} (${e.c})</option>`).join('');
@@ -2170,8 +2177,8 @@ function renderChAdmin() {
   const unassHtml = (unassG.length||unassF.length)?`
     <div class="ch-admin-sect" style="border-left:4px solid var(--red)">
       <div class="ch-admin-title" style="color:var(--red)">⚠️ Élèves non assignés (${unassG.length+unassF.length})</div>
-      ${unassG.map(e=>`<span class="ch-e G" style="margin:2px">${esc(e.p)}.${esc(e.n[0])} ${e.c}</span>`).join('')}
-      ${unassF.map(e=>`<span class="ch-e F" style="margin:2px">${esc(e.p)}.${esc(e.n[0])} ${e.c}</span>`).join('')}
+      ${unassG.map(e=>`<span class="ch-e G" style="margin:2px">${displayName(e)} ${e.c}</span>`).join('')}
+      ${unassF.map(e=>`<span class="ch-e F" style="margin:2px">${displayName(e)} ${e.c}</span>`).join('')}
     </div>`:'';
 
   return `
@@ -2994,7 +3001,7 @@ function renderSkiGroupes() {
     const col = skiCol(id);
     const eleves = (g.eleves||[]).map(eid=>EM[eid]).filter(Boolean);
     const isOpen = openSki.has(id);
-    const elevesHtml = eleves.map(e=>`<span class="ch-e ${e.s}" style="margin:2px">${e.s==='G'?'♂':'♀'} ${esc(e.p)}.${esc(e.n[0])} <span style="font-size:9px;opacity:.65">${e.c}</span></span>`).join('');
+    const elevesHtml = eleves.map(e=>`<span class="ch-e ${e.s}" style="margin:2px">${e.s==='G'?'♂':'♀'} ${displayName(e)} <span style="font-size:9px;opacity:.65">${e.c}</span></span>`).join('');
     return `<div class="ch-card ${isOpen?'open':''}" style="border-color:${col}">
       <div style="padding:12px 14px 8px;display:flex;align-items:center;gap:10px">
         <div style="width:36px;height:36px;border-radius:50%;background:${col};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:#fff;flex-shrink:0">
@@ -3016,7 +3023,7 @@ function renderSkiGroupes() {
 
   const unassHtml = unassigned.length ? `<div style="background:var(--card);border-radius:var(--r);padding:12px 14px;box-shadow:var(--sh);border-left:4px solid var(--red)">
     <div style="font-size:12px;font-weight:800;color:var(--red);margin-bottom:8px">⚠️ Non assignés (${unassigned.length})</div>
-    <div style="display:flex;flex-wrap:wrap;gap:4px">${unassigned.map(e=>`<span class="ch-e ${e.s}">${esc(e.p)}.${esc(e.n[0])} ${e.c}</span>`).join('')}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px">${unassigned.map(e=>`<span class="ch-e ${e.s}">${displayName(e)} ${e.c}</span>`).join('')}</div>
   </div>` : '';
 
   return `<div style="display:flex;flex-direction:column;gap:10px">${cards}</div>${unassHtml?'<div style="margin-top:10px">'+unassHtml+'</div>':''}`;
@@ -3037,7 +3044,7 @@ function renderSkiAdmin() {
 
     const elevesList = eleves.map(e=>`
       <div style="display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--bg)">
-        <span class="ch-e ${e.s}" style="flex:1">${e.s==='G'?'♂':'♀'} ${esc(e.p)}.${esc(e.n[0])} ${esc(e.n)} <span style="font-size:9px;opacity:.7">${e.c}</span></span>
+        <span class="ch-e ${e.s}" style="flex:1">${e.s==='G'?'♂':'♀'} ${displayName(e)} ${esc(e.n)} <span style="font-size:9px;opacity:.7">${e.c}</span></span>
         <select onchange="moveSkiEleve('${e.id}','${id}',this.value);this.value=''"
           style="font-size:11px;padding:3px 6px;border:1.5px solid var(--border);border-radius:6px;background:var(--bg);cursor:pointer;max-width:110px">
           <option value="">→ Changer</option>
