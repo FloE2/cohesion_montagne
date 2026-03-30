@@ -2611,32 +2611,6 @@ function creneauBadge(cr, myTeamNum=null) {
   </div>`;
 }
 
-
-/* ═══ RÉGIMES ALIMENTAIRES ═══ */
-const REGIMES = {
-  '6A01': [{code:'SP', label:'Sans porc',       color:'#1e88e5', bg:'#e3f2fd'}],
-  '6A02': [{code:'SV', label:'Sans viande / Halal', color:'#43a047', bg:'#e8f5e9'}],
-  '6A07': [{code:'SP', label:'Sans porc',       color:'#1e88e5', bg:'#e3f2fd'}],
-  '6A25': [{code:'🥜 Sfac', label:'Fruits à coques', color:'#e65100', bg:'#fff3e0'}],
-  '6B04': [{code:'SP', label:'Sans porc',       color:'#1e88e5', bg:'#e3f2fd'}],
-  '6B06': [{code:'SP', label:'Sans porc',       color:'#1e88e5', bg:'#e3f2fd'}],
-  '6B08': [{code:'SP', label:'Sans porc',       color:'#1e88e5', bg:'#e3f2fd'}],
-  '6B14': [{code:'SP', label:'Sans porc',       color:'#1e88e5', bg:'#e3f2fd'}],
-  '6C01': [{code:'SP', label:'Sans porc',       color:'#1e88e5', bg:'#e3f2fd'}],
-  '6C07': [{code:'SP', label:'Sans porc',       color:'#1e88e5', bg:'#e3f2fd'},
-           {code:'SL', label:'Sans lactose',    color:'#8e24aa', bg:'#f3e5f5'}],
-  '6C09': [{code:'SP', label:'Sans porc',       color:'#1e88e5', bg:'#e3f2fd'}],
-  '6C22': [{code:'SP', label:'Sans porc',       color:'#1e88e5', bg:'#e3f2fd'}],
-};
-
-function regimeBadges(eid) {
-  return (REGIMES[eid]||[]).map(r=>
-    `<span style="font-size:10px;font-weight:800;padding:1px 6px;border-radius:6px;
-      background:${r.bg};color:${r.color};border:1px solid ${r.color};white-space:nowrap"
-      title="${r.label}">${r.code}</span>`
-  ).join('');
-}
-
 function regimesCard() {
   const all = ALL.filter(e => REGIMES[e.id]);
   // Group by regime type for a quick summary
