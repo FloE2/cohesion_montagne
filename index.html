@@ -646,7 +646,7 @@ ALL.forEach(e => EM[e.id] = e);
 const FULL_NAME_IDS = new Set(['6A05','6B02','6A08','6C06']); // Jules.C×2, Oscar.D×2
 function displayName(e) {
   if(FULL_NAME_IDS.has(e.id)) return `${esc(e.p)} ${esc(e.n)}`;
-  return `${displayName(e)}`;
+  return `${esc(e.p)}.${esc(e.n[0])}`;
 }
 
 /* ═══ CONTACTS D'URGENCE (source : Annexe 3 officielle) ═══ */
