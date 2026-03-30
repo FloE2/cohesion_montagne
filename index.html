@@ -2487,6 +2487,7 @@ const PLANNING_JOURNEES = [
       { heure:'16h30',      label:'Rédaction carnet de bord',                    ico:'📓',  equipes:'autres:5,6', type:'activite' },
       { heure:'19h00',      label:'Repas',                                        ico:'🍽️', equipes:null,         type:'repas' },
       { heure:'Soir',       label:'Secourisme',                                  ico:'🏥',  equipes:null,         type:'activite' },
+      { heure:'Soir',       label:'Escape Game · Jeux de société',               ico:'🎲',  equipes:null,         type:'activite' },
     ]
   },
   {
@@ -2501,6 +2502,7 @@ const PLANNING_JOURNEES = [
       { heure:'16h30',      label:'Rédaction carnet de bord',                    ico:'📓',  equipes:'autres:3,4', type:'activite' },
       { heure:'19h00',      label:'Repas',                                        ico:'🍽️', equipes:null,         type:'repas' },
       { heure:'Soir',       label:'Secourisme',                                  ico:'🏥',  equipes:null,         type:'activite' },
+      { heure:'Soir',       label:'Escape Game · Jeux de société',               ico:'🎲',  equipes:null,         type:'activite' },
     ]
   },
   {
@@ -2517,7 +2519,7 @@ const PLANNING_JOURNEES = [
       { heure:'16h30', label:'Intervention pratique DVA',                   ico:'📡',  equipes:[1,2],        type:'activite' },
       { heure:'16h30', label:'Rédaction carnet de bord',                    ico:'📓',  equipes:'autres:1,2', type:'activite' },
       { heure:'19h00', label:'Repas',                                        ico:'🍽️', equipes:null,         type:'repas' },
-      { heure:'Soir',  label:'Secourisme + Boum 🪩',                        ico:'🏥',  equipes:null,         type:'special' },
+      { heure:'Soir',  label:'Boum 🪩',                                     ico:'🎉',  equipes:null,         type:'special' },
     ]
   },
   {
@@ -2569,7 +2571,7 @@ function profChip(nomFamille, isMe=false) {
 function teamNumChip(num, myNum=null) {
   const entry = findTeamByNum(num);
   const col   = entry ? teamColor({colorIdx:entry[1].colorIdx}, Object.keys(EQ).indexOf(entry[0])) : '#9ca3af';
-  const nom   = entry ? esc(entry[1].nom) : `Éq.${num}`;
+  const nom   = entry ? esc(entry[1].nom) : `Gr.Ski ${num}`;
   const isMe  = myNum !== null && num === myNum;
   return `<span class="pl-team-chip ${isMe?'me':''}" style="background:${col}18;border-color:${col};color:${col}">
     ${nom}
@@ -2585,7 +2587,7 @@ function creneauBadge(cr, myTeamNum=null) {
   if(cr.equipes && cr.equipes !== null) {
     if(typeof cr.equipes === 'string' && cr.equipes.startsWith('autres:')) {
       // "autres:3,5" → afficher "Autres équipes"
-      equipeHtml = `<span style="font-size:10px;color:var(--muted);font-style:italic">autres équipes</span>`;
+      equipeHtml = `<span style="font-size:10px;color:var(--muted);font-style:italic">autres groupes de ski</span>`;
     } else {
       equipeHtml = cr.equipes.map(n=>teamNumChip(n, myTeamNum)).join('');
     }
@@ -2609,6 +2611,73 @@ function creneauBadge(cr, myTeamNum=null) {
   </div>`;
 }
 
+
+/* ═══ RÉGIMES ALIMENTAIRES ═══ */
+const REGIMES = {
+  '6A01': [{code:'SP', label:'Sans porc',       color:'#1e88e5', bg:'#e3f2fd'}],
+  '6A02': [{code:'SV', label:'Sans viande / Halal', color:'#43a047', bg:'#e8f5e9'}],
+  '6A07': [{code:'SP', label:'Sans porc',       color:'#1e88e5', bg:'#e3f2fd'}],
+  '6A25': [{code:'🥜 Sfac', label:'Fruits à coques', color:'#e65100', bg:'#fff3e0'}],
+  '6B04': [{code:'SP', label:'Sans porc',       color:'#1e88e5', bg:'#e3f2fd'}],
+  '6B06': [{code:'SP', label:'Sans porc',       color:'#1e88e5', bg:'#e3f2fd'}],
+  '6B08': [{code:'SP', label:'Sans porc',       color:'#1e88e5', bg:'#e3f2fd'}],
+  '6B14': [{code:'SP', label:'Sans porc',       color:'#1e88e5', bg:'#e3f2fd'}],
+  '6C01': [{code:'SP', label:'Sans porc',       color:'#1e88e5', bg:'#e3f2fd'}],
+  '6C07': [{code:'SP', label:'Sans porc',       color:'#1e88e5', bg:'#e3f2fd'},
+           {code:'SL', label:'Sans lactose',    color:'#8e24aa', bg:'#f3e5f5'}],
+  '6C09': [{code:'SP', label:'Sans porc',       color:'#1e88e5', bg:'#e3f2fd'}],
+  '6C22': [{code:'SP', label:'Sans porc',       color:'#1e88e5', bg:'#e3f2fd'}],
+};
+
+function regimeBadges(eid) {
+  return (REGIMES[eid]||[]).map(r=>
+    `<span style="font-size:10px;font-weight:800;padding:1px 6px;border-radius:6px;
+      background:${r.bg};color:${r.color};border:1px solid ${r.color};white-space:nowrap"
+      title="${r.label}">${r.code}</span>`
+  ).join('');
+}
+
+function regimesCard() {
+  const all = ALL.filter(e => REGIMES[e.id]);
+  // Group by regime type for a quick summary
+  const byType = {};
+  all.forEach(e => {
+    REGIMES[e.id].forEach(r => {
+      if(!byType[r]) byType[r] = [];
+      byType[r].push(e);
+    });
+  });
+
+  const rows = Object.entries(byType).map(([k, eleves]) => {
+    const c = REGIME_COLORS[k] || { bg:'#f3f4f6', text:'#374151', label:k };
+    const badges = eleves.map(e =>
+      `<span style="font-size:11px;font-weight:700;background:var(--bg);color:var(--text);
+        border-radius:6px;padding:2px 7px;margin:2px;display:inline-block">
+        ${esc(e.p)}.${esc(e.n[0])} <span style="color:var(--muted);font-size:10px">${e.c}</span>
+      </span>`
+    ).join('');
+    return `<div style="margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        <span style="font-size:11px;font-weight:900;background:${c.bg};color:${c.text};
+          border-radius:6px;padding:2px 8px">${c.label}</span>
+        <span style="font-size:11px;color:var(--muted)">${eleves.length} élève${eleves.length>1?'s':''}</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:2px">${badges}</div>
+    </div>`;
+  }).join('');
+
+  return `<div style="background:var(--card);border-radius:var(--r);box-shadow:var(--sh);
+    padding:14px;margin-bottom:12px;border-left:4px solid #f59e0b">
+    <div style="font-size:12px;font-weight:800;color:#92400e;margin-bottom:10px">
+      🍽️ Régimes alimentaires — ${all.length} élèves concernés
+    </div>
+    <div style="font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.4">
+      SP = Sans porc · SV = Sans viande/Halal · Sfac = Sans fruits à coques · SG = Sans gluten · SL = Sans lactose · PAI = PAI alimentaire · SChamp = Sans champignons
+    </div>
+    ${rows}
+  </div>`;
+}
+
 /* ═══ RENDER PLANNING ═══ */
 function rPlanning() {
   const viewTabs = `<div class="pl-tabs" style="margin-bottom:10px">
@@ -2629,7 +2698,8 @@ function rPlanning() {
 
 /* ───────────── REPAS ───────────── */
 function renderRepasGeneral() {
-  return PLANNING_REPAS.map(day=>{
+  const regCard = regimesCard();
+  const days = PLANNING_REPAS.map(day=>{
     const bChips = day.belledonne.map(n=>profChip(n)).join('');
     const aChips = day.alpage.map(n=>profChip(n)).join('');
     return `<div class="pl-day-card">
@@ -2644,6 +2714,7 @@ function renderRepasGeneral() {
       </div>
     </div>`;
   }).join('');
+  return days + regCard;
 }
 
 function renderRepasMoi() {
@@ -2670,7 +2741,7 @@ function renderRepasMoi() {
       </div>
     </div>`;
   }).join('');
-  return myCard + days;
+  return myCard + days + regimesCard();
 }
 
 /* ───────────── JOURNÉES ───────────── */
@@ -2919,6 +2990,50 @@ window.openMural = () => {
   w.document.write(html);
   w.document.close();
 };
+
+
+/* ═══ RÉGIMES ALIMENTAIRES ═══ */
+const REGIMES = {
+  '6B04': ['SP'],                      // Massin Dekkiche
+  '6A01': ['SP'],                      // Izhac Allaoui
+  '6A02': ['SV'],                      // Nadir Atsouli (sans viande / Halal)
+  '6A25': ['Sfac'],                    // Eliott Wathle (fruits à coques)
+  '6A07': ['SP'],                      // Marius Corneschi
+  '6C01': ['SP'],                      // Marius Abaldonato (à confirmer)
+  '6C07': ['SP', 'SL'],               // Fansé Diakité (sans porc + sans lactose)
+  '6C09': ['SP'],                      // Khodr El-Osta
+  '6C22': ['SP'],                      // Arosh Rehan
+  '6B06': ['SP'],                      // Balla Diabaté
+  '6B08': ['SP'],                      // Nahel Driouche
+  '6B14': ['SP'],                      // Ahmed Hadidja
+  '6B20': ['SG'],                      // Abel Priester (sans gluten)
+  '6A09': ['Sfac'],                    // Elise Fritz (fruits à coques)
+  '6A20': ['SP'],                      // Coumba Sacko
+  '6B17': ['PAI'],                     // Océane Macheboeuf
+  '6C04': ['SChamp'],                  // Flore Cognet (sans champignons)
+  '6C17': ['SP'],                      // Anya Morcel
+  '6C21': ['SP'],                      // Sélima Rassaa
+};
+
+const REGIME_COLORS = {
+  'SP':    { bg:'#fef3c7', text:'#92400e', label:'SP' },         // Sans porc
+  'SV':    { bg:'#d1fae5', text:'#065f46', label:'SV' },         // Sans viande / Halal
+  'Sfac':  { bg:'#fee2e2', text:'#991b1b', label:'⚠️ Sfac' },   // Sans fruits à coques
+  'SG':    { bg:'#ede9fe', text:'#5b21b6', label:'SG' },         // Sans gluten
+  'SL':    { bg:'#e0f2fe', text:'#075985', label:'SL' },         // Sans lactose
+  'PAI':   { bg:'#fce7f3', text:'#9d174d', label:'🆘 PAI' },    // PAI alimentaire
+  'SChamp':{ bg:'#f0fdf4', text:'#166534', label:'SChamp' },     // Sans champignons
+};
+
+function regimeBadges(eid) {
+  const r = REGIMES[eid];
+  if(!r) return '';
+  return r.map(k => {
+    const c = REGIME_COLORS[k] || { bg:'#f3f4f6', text:'#374151', label:k };
+    return `<span style="font-size:9px;font-weight:800;background:${c.bg};color:${c.text};
+      border-radius:5px;padding:1px 5px;margin-left:3px;flex-shrink:0">${c.label}</span>`;
+  }).join('');
+}
 
 /* ═══════════════════════════════════════
    SKI — GROUPES ESF
@@ -3205,6 +3320,7 @@ function rAppel() {
           <div style="font-size:13px;font-weight:${isWaiting?'900':'700'};
             color:${isAbsent?'#b91c1c':isWaiting?'var(--text)':'var(--muted)'}">
             ${esc(e.p)} ${esc(e.n)}
+            ${regimeBadges(e.id)}
             ${isAbsent?'<span style="font-size:10px;background:#fee2e2;color:#b91c1c;border-radius:6px;padding:1px 6px;margin-left:4px;font-weight:800">ABSENT</span>':''}
           </div>
         </div>
