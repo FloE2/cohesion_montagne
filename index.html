@@ -343,7 +343,7 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
 .pl-chalet.alpage .pl-chalet-title{color:#15803d}
 .pl-team-chip{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;
   font-size:12px;font-weight:700;margin:2px;border:1.5px solid transparent}
-.pl-team-chip.me{outline:2.5px solid var(--primary);outline-offset:1px;font-size:13px}
+.pl-team-chip.me{outline:2.5px solid var(--primary);outline-offset:1px}
 /* Vue personnelle */
 .pl-my-day{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:10px;overflow:hidden}
 .pl-my-head{display:flex;align-items:center;gap:12px;padding:12px 14px}
@@ -2567,14 +2567,25 @@ function profChip(nomFamille, isMe=false) {
   </span>`;
 }
 
-/* ── Chip équipe activité (par numéro) ── */
+/* ── Niveaux des groupes de ski ── */
+const SKI_NIVEAUX = {
+  1: 'Avancé · Confirmé',
+  2: 'Confirmé · Inter.',
+  3: 'Intermédiaire',
+  4: 'Débutant',
+  5: 'Débutant',
+  6: 'Débutant',
+};
+const SKI_COLORS_PLAN = ['#e53935','#1e88e5','#388e3c','#f57c00','#7b1fa2','#0097a7'];
+
+/* ── Chip groupe ski (par numéro) ── */
 function teamNumChip(num, myNum=null) {
-  const entry = findTeamByNum(num);
-  const col   = entry ? teamColor({colorIdx:entry[1].colorIdx}, Object.keys(EQ).indexOf(entry[0])) : '#9ca3af';
-  const nom   = entry ? esc(entry[1].nom) : `Gr.Ski ${num}`;
+  const col   = SKI_COLORS_PLAN[(num-1) % SKI_COLORS_PLAN.length];
+  const niveau = SKI_NIVEAUX[num] || '';
   const isMe  = myNum !== null && num === myNum;
-  return `<span class="pl-team-chip ${isMe?'me':''}" style="background:${col}18;border-color:${col};color:${col}">
-    ${nom}
+  return `<span class="pl-team-chip ${isMe?'me':''}" style="background:${col}18;border-color:${col};color:${col};flex-direction:column;align-items:flex-start;padding:4px 10px;gap:0">
+    <span style="font-weight:800;font-size:12px">Gr.Ski ${num}</span>
+    ${niveau?`<span style="font-size:9px;opacity:.75;font-weight:600">${niveau}</span>`:''}
   </span>`;
 }
 
