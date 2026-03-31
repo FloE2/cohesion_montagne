@@ -2141,7 +2141,7 @@ function renderChRooms() {
       </div>
       <!-- Toggle critères -->
       <div class="ch-head" style="padding:8px 14px;border-top:1.5px solid var(--bg)" onclick="toggleCh('${id}')">
-        <span style="font-size:12px;font-weight:700;color:var(--primary);flex:1">📋 Critères · Jour ${activeDayForRoom} · ${critScore}/${CRITERES.length}${(day.bonus||0)>0?` + ${day.bonus}⭐`:''} ✓</span>
+        <span style="font-size:12px;font-weight:700;color:var(--primary);flex:1">📋 Critères · Jour ${activeDayForRoom} · ${critScore}/${CRITERES.length}${(day.bonus||0)!==0?` ${(day.bonus||0)>0?'+':''}${day.bonus}⭐`:''}  ✓</span>
         <div class="ch-arr" style="font-size:13px;margin-top:0">▼</div>
       </div>
       <div class="ch-body" style="padding:0 14px 14px">
@@ -2149,27 +2149,30 @@ function renderChRooms() {
         <div class="day-check-zone">
           <div class="day-check-head">
             <span class="day-check-lbl">Jour ${activeDayForRoom}</span>
-            <span class="day-check-pts">${critScore}/${CRITERES.length}${(day.bonus||0)>0?` + ${day.bonus}⭐`:''} ✓</span>
+            <span class="day-check-pts">${critScore}/${CRITERES.length}${(day.bonus||0)!==0?` ${(day.bonus||0)>0?'+':''}${day.bonus}⭐`:''} ✓</span>
           </div>
           ${criteresHtml}
-          <!-- Zone bonus -->
+          <!-- Zone bonus/malus -->
           <div style="margin-top:10px;padding-top:10px;border-top:1.5px dashed var(--border)">
-            <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">⭐ Bonus libre</div>
+            <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">⭐ Bonus / Malus</div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
               <input id="bonus-raison-${id}-${activeDayForRoom}" type="text"
-                placeholder="Raison (ex: très bonne entente…)"
+                placeholder="Raison (ex: très bonne entente, désordre…)"
                 value="${esc((day.bonusRaison||''))}"
                 style="flex:1;min-width:120px;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:12px"
                 oninput="updateBonusRaison('${id}',${activeDayForRoom},this.value)">
               <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
                 <button onclick="changeBonus('${id}',${activeDayForRoom},-1)"
                   style="width:30px;height:30px;border-radius:8px;border:1.5px solid #fca5a5;background:#fee2e2;color:#b91c1c;font-size:16px;font-weight:900;cursor:pointer;line-height:1">−</button>
-                <span style="min-width:28px;text-align:center;font-size:18px;font-weight:900;color:var(--primary)">${day.bonus||0}</span>
+                <span style="min-width:32px;text-align:center;font-size:18px;font-weight:900;color:${(day.bonus||0)>0?'var(--green)':(day.bonus||0)<0?'var(--red)':'var(--primary)'}">${(day.bonus||0)>0?'+':''}${day.bonus||0}</span>
                 <button onclick="changeBonus('${id}',${activeDayForRoom},1)"
                   style="width:30px;height:30px;border-radius:8px;border:1.5px solid #86efac;background:#dcfce7;color:#15803d;font-size:16px;font-weight:900;cursor:pointer;line-height:1">+</button>
               </div>
             </div>
-            ${(day.bonus||0)>0||day.bonusRaison?`<div style="font-size:11px;color:var(--green);font-weight:700;margin-top:6px">⭐ +${day.bonus||0} pt${(day.bonus||0)>1?'s':''} · ${esc(day.bonusRaison||'Bonus')}</div>`:''}
+            ${(day.bonus||0)!==0||day.bonusRaison?`<div style="font-size:11px;font-weight:700;margin-top:6px;color:${(day.bonus||0)>=0?'var(--green)':'var(--red)'}">
+              ${(day.bonus||0)>=0?'⭐':'⚠️'} ${(day.bonus||0)>0?'+':''}${day.bonus||0} pt${Math.abs(day.bonus||0)>1?'s':''} · ${esc(day.bonusRaison||((day.bonus||0)>=0?'Bonus':'Malus'))}
+            </div>`:''}
+          </div>
           </div>
         </div>
         <div class="ch-action-row">
@@ -2395,7 +2398,7 @@ window.toggleCrit = async (chambreId, jour, critIdx) => {
 window.changeBonus = async (chambreId, jour, delta) => {
   const day = (CK[chambreId]||{})[`j${jour}`]||{};
   const cur = day.bonus || 0;
-  const newVal = Math.max(0, cur + delta); // ne peut pas descendre sous 0
+  const newVal = cur + delta; // peut être négatif (malus)
   const path = `sejour/chambre_checks/${chambreId}/j${jour}/bonus`;
 
   // Mise à jour locale immédiate
