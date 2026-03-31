@@ -1482,6 +1482,7 @@ function rAdmin() {
     <button class="atab ${adminTab==='regles'?'active':''}" onclick="setATab('regles')">⭐ Règles d'or</button>
     <button class="atab ${adminTab==='comptes'?'active':''}" onclick="setATab('comptes')">👥 Comptes</button>
     <button class="atab ${adminTab==='stats'?'active':''}" onclick="setATab('stats')">📊 Stats profs</button>
+    <button class="atab ${adminTab==='elevesrank'?'active':''}" onclick="setATab('elevesrank')">🏅 Élèves</button>
     <button class="atab ${adminTab==='urgences'?'active':''}" onclick="setATab('urgences')">🆘 Urgences</button>
   </div>`;
   let body = '';
@@ -1489,6 +1490,7 @@ function rAdmin() {
   else if(adminTab==='regles') body = aRegles();
   else if(adminTab==='comptes') body = aComptes();
   else if(adminTab==='stats') body = aStats();
+  else if(adminTab==='elevesrank') body = aElevesRank();
   else if(adminTab==='urgences') body = aUrgences();
   G('ad-content').innerHTML = tabs + body;
 }
@@ -1716,6 +1718,87 @@ window.addRegle = async () => {
   toast('Règle ajoutée ✓','ok');
 };
 window.delRegle = async id => { await remove(ref(db,`sejour/regles/${id}`)); toast('Règle supprimée'); };
+
+/* ── Admin Classement Élèves ── */
+function aElevesRank() {
+  // Index élève → équipe
+  const elevTeamIdx = {};
+  Object.entries(EQ).forEach(([tid,t])=>(t.eleves||[]).forEach(eid=>{ elevTeamIdx[eid]=tid; }));
+
+  // Index élève → chambre
+  const elevChIdx = {};
+  Object.entries(CH).forEach(([cid,c])=>(c.eleves||[]).forEach(eid=>{ elevChIdx[eid]=cid; }));
+
+  // Points individuels par élève (historique avec eleveNom → trouver l'id)
+  const indivPts = {};
+  Object.values(HI).forEach(h => {
+    if(!h.eleveNom) return;
+    // retrouver l'élève via son label "Prénom N."
+    const match = ALL.find(e => `${e.p} ${e.n[0]}.` === h.eleveNom);
+    if(match) indivPts[match.id] = (indivPts[match.id]||0) + h.delta;
+  });
+
+  // Calcul score pour chaque élève
+  const scores = ALL.map(e => {
+    const teamId = elevTeamIdx[e.id];
+    const chamId = elevChIdx[e.id];
+    const teamPts  = teamId ? totalPts(teamId) : 0;
+    const chamPts  = chamId ? chambreScore(chamId) : 0;
+    const indPts   = indivPts[e.id] || 0;
+    const total    = teamPts + chamPts + indPts;
+    return { e, teamPts, chamPts, indPts, total,
+      teamNom: teamId ? (EQ[teamId]?.nom||'') : '',
+      chamNom: chamId ? (CH[chamId]?.nom||'') : '' };
+  }).sort((a,b) => b.total - a.total);
+
+  const maxTotal = scores[0]?.total || 1;
+
+  const renderRow = (s, rank, showMedal=false) => {
+    const medals = ['🥇','🥈','🥉'];
+    const medal  = showMedal && rank < 3 ? medals[rank] : '';
+    const isBot  = !showMedal;
+    const barCol = isBot ? '#ef4444' : '#1a73e8';
+    const barW   = maxTotal > 0 ? Math.max(Math.abs(s.total)/Math.abs(maxTotal)*100, 2) : 2;
+    const scoreCol = s.total > 0 ? 'var(--green)' : s.total < 0 ? 'var(--red)' : 'var(--muted)';
+    return `<div style="background:var(--card);border-radius:var(--r);padding:11px 14px;
+      box-shadow:var(--sh);margin-bottom:6px;border-left:4px solid ${barCol}">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="width:30px;text-align:center;font-size:14px;font-weight:900;
+          color:var(--muted);flex-shrink:0">${medal||('#'+(rank+1))}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:800">${esc(s.e.p)} ${esc(s.e.n)}
+            <span style="font-size:10px;font-weight:400;color:var(--muted);margin-left:4px">${s.e.c}</span>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:3px">
+            ${s.teamNom?`<span style="font-size:10px;color:var(--muted)">🏔️ ${esc(s.teamNom)} <strong>+${s.teamPts}</strong></span>`:''}
+            ${s.chamNom?`<span style="font-size:10px;color:var(--muted)">🛏️ ${esc(s.chamNom)} <strong>+${s.chamPts}</strong></span>`:''}
+            ${s.indPts?`<span style="font-size:10px;color:var(--primary)">👤 Indiv. <strong>${s.indPts>0?'+':''}${s.indPts}</strong></span>`:''}
+          </div>
+          <div style="margin-top:5px;background:var(--bg);border-radius:20px;height:4px;overflow:hidden">
+            <div style="width:${barW}%;height:100%;background:${barCol};border-radius:20px"></div>
+          </div>
+        </div>
+        <div style="font-size:20px;font-weight:900;color:${scoreCol};flex-shrink:0">
+          ${s.total>0?'+':''}${s.total}
+        </div>
+      </div>
+    </div>`;
+  };
+
+  const top10 = scores.slice(0, 10);
+  const bot10 = [...scores].reverse().slice(0, 10);
+
+  return `
+    <div style="font-size:11px;color:var(--muted);background:var(--bg);border-radius:8px;
+      padding:8px 12px;margin-bottom:12px;line-height:1.5">
+      📌 Score = Points équipe + Points chambre + Points individuels attribués directement
+    </div>
+    <div style="font-size:13px;font-weight:900;color:var(--green);margin-bottom:8px">🏅 Top 10 — Meilleurs élèves</div>
+    ${top10.map((s,i)=>renderRow(s,i,true)).join('')}
+    <div style="font-size:13px;font-weight:900;color:var(--red);margin:16px 0 8px">⬇️ Flop 10 — Élèves à encourager</div>
+    ${bot10.map((s,i)=>renderRow(s,i,false)).join('')}
+  `;
+}
 
 /* ── Admin Stats profs ── */
 function aStats() {
