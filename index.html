@@ -207,14 +207,14 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
 .fi:focus{border-color:var(--primary)}
 
 /* TOAST */
-.toast{position:fixed;bottom:24px;left:50%;
-  transform:translateX(-50%) translateY(16px);background:rgba(30,35,50,.93);
-  color:#fff;padding:12px 22px;border-radius:24px;font-size:14px;font-weight:700;
-  opacity:0;transition:all .25s;z-index:300;white-space:nowrap;pointer-events:none;
-  backdrop-filter:blur(8px)}
+.toast{position:fixed;bottom:28px;left:50%;
+  transform:translateX(-50%) translateY(20px);background:rgba(30,35,50,.95);
+  color:#fff;padding:14px 28px;border-radius:28px;font-size:15px;font-weight:800;
+  opacity:0;transition:all .2s;z-index:9999;white-space:nowrap;pointer-events:none;
+  backdrop-filter:blur(10px);box-shadow:0 4px 20px rgba(0,0,0,.25);letter-spacing:.1px}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.toast.ok{background:rgba(21,128,61,.93)}
-.toast.err{background:rgba(185,28,28,.93)}
+.toast.ok{background:rgba(21,128,61,.95)}
+.toast.err{background:rgba(185,28,28,.95)}
 
 /* MISC */
 .spin{display:inline-block;width:18px;height:18px;border:2.5px solid var(--border);
@@ -2446,28 +2446,29 @@ window.toggleCrit = async (chambreId, jour, critIdx) => {
   if(!CK[chambreId][`j${jour}`]) CK[chambreId][`j${jour}`] = {};
   CK[chambreId][`j${jour}`][`c${critIdx}`] = newVal;
 
-  // Rafraîchit tous les panels qui dépendent des points chambre
-  rChambres();                                     // vue chambres active
-  if(panelAct === 'classement') rClass();          // classement équipes si actif
-  if(panelAct === 'attribuer')  rAttr();           // panel points si actif
+  rChambres();
+  if(panelAct === 'classement') rClass();
+  if(panelAct === 'attribuer')  rAttr();
 
-  // ── Persistance Firebase en arrière-plan ──
-  set(ref(db, path), newVal).catch(err => {
-    // En cas d'échec, on rollback localement
+  // ── Persistance Firebase ──
+  try {
+    await set(ref(db, path), newVal);
+    const chamNom = CH[chambreId]?.nom || chambreId;
+    toast(newVal ? `✅ Critère coché — ${chamNom} ✓` : `☐ Critère décoché — ${chamNom}`, newVal ? 'ok' : '');
+  } catch(err) {
     CK[chambreId][`j${jour}`][`c${critIdx}`] = cur;
     rChambres();
     toast('Erreur réseau, réessaie ❌', 'err');
-  });
+  }
 };
 
 /* ── Modifier le bonus journalier ── */
 window.changeBonus = async (chambreId, jour, delta) => {
   const day = (CK[chambreId]||{})[`j${jour}`]||{};
   const cur = day.bonus || 0;
-  const newVal = cur + delta; // peut être négatif (malus)
+  const newVal = cur + delta;
   const path = `sejour/chambre_checks/${chambreId}/j${jour}/bonus`;
 
-  // Mise à jour locale immédiate
   if(!CK[chambreId]) CK[chambreId] = {};
   if(!CK[chambreId][`j${jour}`]) CK[chambreId][`j${jour}`] = {};
   CK[chambreId][`j${jour}`].bonus = newVal;
@@ -2475,11 +2476,17 @@ window.changeBonus = async (chambreId, jour, delta) => {
   if(panelAct==='classement') rClass();
   if(panelAct==='attribuer') rAttr();
 
-  set(ref(db, path), newVal).catch(()=>{
+  try {
+    await set(ref(db, path), newVal);
+    const chamNom = CH[chambreId]?.nom || chambreId;
+    const sign = newVal > 0 ? '+' : '';
+    const type = newVal >= 0 ? 'ok' : '';
+    toast(`${newVal >= 0 ? '⭐' : '⚠️'} Bonus/Malus ${sign}${newVal} — ${chamNom} ✓`, type);
+  } catch(err) {
     CK[chambreId][`j${jour}`].bonus = cur;
     rChambres();
     toast('Erreur réseau ❌','err');
-  });
+  }
 };
 
 /* ── Sauvegarder la raison du bonus (debounced) ── */
@@ -3551,7 +3558,7 @@ function toast(msg,type='') {
   t.textContent=msg;
   t.className='toast show'+(type?' '+type:'');
   clearTimeout(toastTm);
-  toastTm=setTimeout(()=>{ t.className='toast'; },2600);
+  toastTm=setTimeout(()=>{ t.className='toast'; },3200);
 }
 
 /* ═══ INIT SESSION ═══ */
