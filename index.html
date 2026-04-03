@@ -1483,6 +1483,7 @@ function rAdmin() {
     <button class="atab ${adminTab==='comptes'?'active':''}" onclick="setATab('comptes')">👥 Comptes</button>
     <button class="atab ${adminTab==='stats'?'active':''}" onclick="setATab('stats')">📊 Stats profs</button>
     <button class="atab ${adminTab==='elevesrank'?'active':''}" onclick="setATab('elevesrank')">🏅 Élèves</button>
+    <button class="atab ${adminTab==='bilan'?'active':''}" onclick="setATab('bilan')">📋 Bilan</button>
     <button class="atab ${adminTab==='urgences'?'active':''}" onclick="setATab('urgences')">🆘 Urgences</button>
   </div>`;
   let body = '';
@@ -1491,6 +1492,7 @@ function rAdmin() {
   else if(adminTab==='comptes') body = aComptes();
   else if(adminTab==='stats') body = aStats();
   else if(adminTab==='elevesrank') body = aElevesRank();
+  else if(adminTab==='bilan') body = aBilan();
   else if(adminTab==='urgences') body = aUrgences();
   G('ad-content').innerHTML = tabs + body;
 }
@@ -1718,6 +1720,277 @@ window.addRegle = async () => {
   toast('Règle ajoutée ✓','ok');
 };
 window.delRegle = async id => { await remove(ref(db,`sejour/regles/${id}`)); toast('Règle supprimée'); };
+
+/* ══════════════════════════════════════════════════════
+   BILAN SÉJOUR
+   ══════════════════════════════════════════════════════ */
+function aBilan() {
+  const JOURS_NOM = ['Lundi 30/03','Mardi 31/03','Mercredi 01/04','Jeudi 02/04','Vendredi 03/04'];
+  const ABSENTS   = new Set(['6A12','6A23','6C10']);
+
+  // ── Bornes horaires de chaque jour du séjour ──
+  const dayStart = j => new Date(2026, 2, 29 + j).getTime(); // j=1→30/03
+  const dayEnd   = j => new Date(2026, 2, 30 + j).getTime();
+  const hiDay    = h => { for(let j=1;j<=5;j++) if(h.ts>=dayStart(j)&&h.ts<dayEnd(j)) return j; return 0; };
+
+  const hist = Object.values(HI);
+
+  // ── Points équipes par jour (cumulatif) ──
+  const teamIds = Object.keys(EQ).sort();
+  const teamCumul = {}; // teamId → [pts j1, j2, j3, j4, j5] cumulatifs
+  teamIds.forEach(tid => { teamCumul[tid] = [0,0,0,0,0]; });
+  hist.forEach(h => {
+    const j = hiDay(h);
+    if(!j||!h.equipeId||!teamCumul[h.equipeId]) return;
+    for(let k=j-1;k<5;k++) teamCumul[h.equipeId][k] += h.delta;
+  });
+
+  // ── Score chambre par jour ──
+  const chamScoreJ = (cid,j) => chambreScoreJour(cid,j);
+
+  // ── Index élève → équipe / chambre ──
+  const eToTeam={}, eToCham={};
+  Object.entries(EQ).forEach(([tid,t])=>(t.eleves||[]).forEach(eid=>{eToTeam[eid]=tid;}));
+  Object.entries(CH).forEach(([cid,c])=>(c.eleves||[]).forEach(eid=>{eToCham[eid]=cid;}));
+
+  // ── Points individuels ──
+  const indivPos={}, indivNeg={}, indivByRegle={};
+  hist.forEach(h=>{
+    if(!h.eleveNom) return;
+    const e = ALL.find(x=>`${x.p} ${x.n[0]}.`===h.eleveNom||displayName(x)===h.eleveNom);
+    if(!e||ABSENTS.has(e.id)) return;
+    if(h.delta>0) indivPos[e.id]=(indivPos[e.id]||0)+h.delta;
+    else          indivNeg[e.id]=(indivNeg[e.id]||0)+h.delta;
+    if(!indivByRegle[e.id]) indivByRegle[e.id]={};
+    const r=h.regle||'Points libres';
+    indivByRegle[e.id][r]=(indivByRegle[e.id][r]||0)+h.delta;
+  });
+
+  // ── Score total élève ──
+  const scoreEleve = eid => {
+    const tid=eToTeam[eid], cid=eToCham[eid];
+    const tPts = tid ? (EQ[tid].points||0) : 0;
+    const cPts = cid ? chambreScore(cid) : 0;
+    const iPts = (indivPos[eid]||0)+(indivNeg[eid]||0);
+    return { tPts, cPts, iPts, total: tPts+cPts+iPts };
+  };
+
+  // ─────────────────── SVG LINE CHART (évolution équipes) ───────────────────
+  const W=320, H=140, PAD={t:10,r:10,b:28,l:36};
+  const allVals = teamIds.flatMap(tid=>teamCumul[tid]);
+  const minV=Math.min(0,...allVals), maxV=Math.max(1,...allVals);
+  const xPos = j => PAD.l + (j/(5-1))*(W-PAD.l-PAD.r);
+  const yPos = v => PAD.t + (1-(v-minV)/(maxV-minV||1))*(H-PAD.t-PAD.b);
+  const TEAM_COLS=['#e53935','#1e88e5','#388e3c','#f57c00','#7b1fa2','#0097a7','#e91e63'];
+
+  const gridLines = [0,25,50,75,100].filter(v=>v>=minV&&v<=maxV).map(v=>
+    `<line x1="${PAD.l}" x2="${W-PAD.r}" y1="${yPos(v)}" y2="${yPos(v)}" stroke="#e5e7eb" stroke-width="0.5"/>
+     <text x="${PAD.l-4}" y="${yPos(v)+4}" font-size="8" fill="#9ca3af" text-anchor="end">${v}</text>`).join('');
+
+  const xLabels = JOURS_NOM.map((n,i)=>
+    `<text x="${xPos(i)}" y="${H-4}" font-size="7.5" fill="#9ca3af" text-anchor="middle">${n.split(' ')[0]}</text>`).join('');
+
+  const lines = teamIds.map((tid,ti)=>{
+    const pts=teamCumul[tid], col=TEAM_COLS[ti%TEAM_COLS.length];
+    const d=pts.map((v,i)=>`${i===0?'M':'L'}${xPos(i)},${yPos(v)}`).join(' ');
+    const last=pts[4], lx=xPos(4)+4, ly=yPos(last);
+    return `<path d="${d}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round"/>
+      <circle cx="${xPos(4)}" cy="${yPos(last)}" r="3" fill="${col}"/>`;
+  }).join('');
+
+  const svgChart = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:${W}px">
+    ${gridLines}${xLabels}${lines}
+  </svg>`;
+
+  // ─────────────────── TABLEAU ÉQUIPES ───────────────────
+  const teamRows = [...teamIds].sort((a,b)=>(EQ[b].points||0)-(EQ[a].points||0)).map((tid,rank)=>{
+    const t=EQ[tid], col=TEAM_COLS[teamIds.indexOf(tid)%TEAM_COLS.length];
+    const medal=rank===0?'🥇':rank===1?'🥈':rank===2?'🥉':`#${rank+1}`;
+    const ptsManuel=t.points||0;
+    const eleves=(t.eleves||[]);
+    const chamBonus=eleves.reduce((s,eid)=>{const cid=eToCham[eid];return s+(cid?chambreScore(cid)*(1/((CH[cid]?.eleves||[]).length||1)):0);},0);
+    const pos=hist.filter(h=>h.equipeId===tid&&h.delta>0).reduce((s,h)=>s+h.delta,0);
+    const neg=hist.filter(h=>h.equipeId===tid&&h.delta<0).reduce((s,h)=>s+h.delta,0);
+    return `<tr>
+      <td style="padding:8px 10px;font-weight:800;color:${col}">${medal} ${esc(t.nom||tid)}</td>
+      <td style="padding:8px;text-align:center;font-weight:700;color:#15803d">+${pos}</td>
+      <td style="padding:8px;text-align:center;font-weight:700;color:#b91c1c">${neg||0}</td>
+      <td style="padding:8px;text-align:center;font-weight:900;font-size:15px">${ptsManuel>0?'+':''}${ptsManuel}</td>
+      <td style="padding:8px;text-align:center;color:#6b7280;font-size:12px">${(t.eleves||[]).length} élèves</td>
+    </tr>`;
+  }).join('');
+
+  // ─────────────────── TABLEAU CHAMBRES ───────────────────
+  const chamRows = Object.entries(CH).sort((a,b)=>chambreScore(b[0])-chambreScore(a[0])).map(([cid,c],rank)=>{
+    const total=chambreScore(cid);
+    const max=NB_JOURS*CRITERES.length;
+    const pct=Math.round(total/max*100);
+    const bonus=Object.values(CK[cid]||{}).reduce((s,d)=>s+(d.bonus||0),0);
+    const medal=rank===0?'🥇':rank===1?'🥈':rank===2?'🥉':`#${rank+1}`;
+    const jScores=[1,2,3,4,5].map(j=>`<td style="padding:6px 8px;text-align:center;font-size:12px;
+      color:${chamScoreJ(cid,j)>=CRITERES.length?'#15803d':chamScoreJ(cid,j)>0?'#b45309':'#9ca3af'};font-weight:700">
+      ${chamScoreJ(cid,j)}/${CRITERES.length}${bonus&&j===5?'<span style="font-size:9px;color:#7b1fa2"> +B</span>':''}</td>`).join('');
+    return `<tr style="border-bottom:1px solid #f3f4f6">
+      <td style="padding:8px 10px;font-weight:800">${medal} ${esc(c.nom||cid)}</td>
+      <td style="padding:8px;font-size:11px;color:#6b7280">${(c.eleves||[]).length} élèves</td>
+      ${jScores}
+      <td style="padding:8px;text-align:center;font-weight:900;font-size:15px;color:${pct>=80?'#15803d':pct>=50?'#b45309':'#b91c1c'}">${total}/${max}</td>
+      <td style="padding:8px;text-align:center;font-size:12px;color:#7b1fa2">${bonus>0?'+'+bonus:bonus<0?bonus:'-'}</td>
+    </tr>`;
+  }).join('');
+
+  // ─────────────────── TOP / FLOP ÉLÈVES ───────────────────
+  const presents = ALL.filter(e=>!ABSENTS.has(e.id));
+  const scoresSorted = presents.map(e=>({e,...scoreEleve(e.id)})).sort((a,b)=>b.total-a.total);
+  const top5 = scoresSorted.slice(0,5);
+  const flop5 = [...scoresSorted].reverse().slice(0,5);
+
+  const renderEleveRow = (s,rank,isTop) => {
+    const col=isTop?'#15803d':'#b91c1c';
+    const bg=isTop?'#f0fdf4':'#fef2f2';
+    const border=isTop?'#86efac':'#fca5a5';
+    const medals=['🥇','🥈','🥉'];
+    const medal=isTop&&rank<3?medals[rank]:`${rank+1}`;
+    const tid=eToTeam[s.e.id];
+    const teamNom=tid?EQ[tid]?.nom:'';
+    const teamCol=tid?TEAM_COLS[teamIds.indexOf(tid)%TEAM_COLS.length]:'#9ca3af';
+    const regles=indivByRegle[s.e.id]||{};
+    const reglesTxt=Object.entries(regles).map(([r,p])=>`${r}: ${p>0?'+':''}${p}`).join(' · ');
+    return `<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 12px;
+      background:${bg};border-radius:10px;border:1.5px solid ${border};margin-bottom:5px">
+      <div style="font-size:13px;font-weight:900;color:${col};min-width:26px;flex-shrink:0">${medal}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:800">${displayName(s.e)} ${esc(s.e.n)}
+          <span style="font-size:10px;font-weight:400;color:#6b7280;margin-left:4px">${s.e.c}</span>
+          ${teamNom?`<span style="font-size:10px;padding:1px 6px;border-radius:10px;background:${teamCol}22;color:${teamCol};font-weight:700;margin-left:4px">${esc(teamNom)}</span>`:''}
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:3px;font-size:10px;color:#6b7280">
+          <span>🏔️ Équipe: <b style="color:${s.tPts>=0?'#15803d':'#b91c1c'}">${s.tPts>0?'+':''}${s.tPts}</b></span>
+          <span>🛏️ Chambre: <b style="color:${s.cPts>=0?'#15803d':'#b91c1c'}">${s.cPts>0?'+':''}${s.cPts}</b></span>
+          ${s.iPts?`<span>👤 Indiv.: <b style="color:${s.iPts>=0?'#15803d':'#b91c1c'}">${s.iPts>0?'+':''}${s.iPts}</b></span>`:''}
+        </div>
+        ${reglesTxt?`<div style="font-size:10px;color:#6b7280;margin-top:2px;font-style:italic">${esc(reglesTxt)}</div>`:''}
+      </div>
+      <div style="font-size:20px;font-weight:900;color:${col};flex-shrink:0">${s.total>0?'+':''}${s.total}</div>
+    </div>`;
+  };
+
+  // ─────────────────── ANALYSE RÈGLES D'OR ───────────────────
+  const regleStats={};
+  hist.forEach(h=>{
+    if(!h.regle) return;
+    if(!regleStats[h.regle]) regleStats[h.regle]={pos:0,neg:0,n:0};
+    h.delta>0?regleStats[h.regle].pos+=h.delta:regleStats[h.regle].neg+=h.delta;
+    regleStats[h.regle].n++;
+  });
+  const regleSorted=Object.entries(regleStats).sort((a,b)=>Math.abs(b[1].neg)-Math.abs(a[1].neg));
+  const regleRows=regleSorted.map(([r,s])=>`<tr>
+    <td style="padding:7px 10px;font-size:12px;font-weight:700">${esc(r)}</td>
+    <td style="padding:7px 8px;text-align:center;font-size:12px;color:#15803d;font-weight:700">${s.pos?'+'+s.pos:'-'}</td>
+    <td style="padding:7px 8px;text-align:center;font-size:12px;color:#b91c1c;font-weight:700">${s.neg||'-'}</td>
+    <td style="padding:7px 8px;text-align:center;font-size:11px;color:#6b7280">${s.n}</td>
+  </tr>`).join('');
+
+  // ─────────────────── STATS GLOBALES ───────────────────
+  const totPos=hist.filter(h=>h.delta>0).reduce((s,h)=>s+h.delta,0);
+  const totNeg=hist.filter(h=>h.delta<0).reduce((s,h)=>s+h.delta,0);
+  const totActions=hist.length;
+  const chamTot=Object.keys(CH).reduce((s,cid)=>s+chambreScore(cid),0);
+  const chamMax=Object.keys(CH).length*NB_JOURS*CRITERES.length;
+
+  const tStyle='border-collapse:collapse;width:100%;font-family:inherit';
+  const thStyle='padding:8px 10px;text-align:left;font-size:11px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;border-bottom:2px solid #e5e7eb';
+  const secTitle=(ico,txt)=>`<div style="font-size:13px;font-weight:900;color:var(--text);margin:16px 0 8px;display:flex;align-items:center;gap:6px">${ico} ${txt}</div>`;
+
+  return `
+  <button onclick="window.print()" style="width:100%;padding:10px;background:#0d1b4b;color:#fff;border:none;
+    border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;margin-bottom:14px">
+    🖨️ Imprimer / Exporter ce bilan
+  </button>
+
+  <!-- STATS GLOBALES -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:4px">
+    <div style="background:var(--card);border-radius:var(--r);padding:10px 12px;box-shadow:var(--sh);text-align:center">
+      <div style="font-size:20px;font-weight:900;color:#15803d">+${totPos}</div>
+      <div style="font-size:10px;color:#6b7280;margin-top:2px">Pts attribués</div>
+    </div>
+    <div style="background:var(--card);border-radius:var(--r);padding:10px 12px;box-shadow:var(--sh);text-align:center">
+      <div style="font-size:20px;font-weight:900;color:#b91c1c">${totNeg}</div>
+      <div style="font-size:10px;color:#6b7280;margin-top:2px">Pts retirés</div>
+    </div>
+    <div style="background:var(--card);border-radius:var(--r);padding:10px 12px;box-shadow:var(--sh);text-align:center">
+      <div style="font-size:20px;font-weight:900;color:#1a73e8">${totActions}</div>
+      <div style="font-size:10px;color:#6b7280;margin-top:2px">Actions total</div>
+    </div>
+    <div style="background:var(--card);border-radius:var(--r);padding:10px 12px;box-shadow:var(--sh);text-align:center">
+      <div style="font-size:20px;font-weight:900;color:#7b1fa2">${chamTot}/${chamMax}</div>
+      <div style="font-size:10px;color:#6b7280;margin-top:2px">Pts chambres</div>
+    </div>
+  </div>
+
+  <!-- ÉVOLUTION ÉQUIPES -->
+  ${secTitle('📈','Évolution des équipes jour par jour')}
+  <div style="background:var(--card);border-radius:var(--r);padding:14px;box-shadow:var(--sh);margin-bottom:4px">
+    ${svgChart}
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+      ${teamIds.map((tid,ti)=>{const col=TEAM_COLS[ti%TEAM_COLS.length];return `<span style="font-size:11px;display:flex;align-items:center;gap:4px">
+        <span style="width:14px;height:4px;background:${col};border-radius:2px;display:inline-block"></span>${esc(EQ[tid]?.nom||tid)}</span>`}).join('')}
+    </div>
+  </div>
+
+  <!-- CLASSEMENT ÉQUIPES -->
+  ${secTitle('🏆','Classement final des équipes')}
+  <div style="background:var(--card);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;margin-bottom:4px">
+    <table style="${tStyle}">
+      <thead><tr style="background:var(--bg)">
+        <th style="${thStyle}">Équipe</th>
+        <th style="${thStyle};text-align:center">Pts +</th>
+        <th style="${thStyle};text-align:center">Pts −</th>
+        <th style="${thStyle};text-align:center">Total</th>
+        <th style="${thStyle};text-align:center">Élèves</th>
+      </tr></thead>
+      <tbody>${teamRows}</tbody>
+    </table>
+  </div>
+
+  <!-- CHAMBRES -->
+  ${secTitle('🛏️','Classement chambres (5 jours)')}
+  <div style="background:var(--card);border-radius:var(--r);box-shadow:var(--sh);overflow:auto;margin-bottom:4px">
+    <table style="${tStyle}">
+      <thead><tr style="background:var(--bg)">
+        <th style="${thStyle}">Chambre</th>
+        <th style="${thStyle}">Élèves</th>
+        ${JOURS_NOM.map(j=>`<th style="${thStyle};text-align:center">${j.split(' ')[0]}</th>`).join('')}
+        <th style="${thStyle};text-align:center">Total</th>
+        <th style="${thStyle};text-align:center">Bonus</th>
+      </tr></thead>
+      <tbody>${chamRows}</tbody>
+    </table>
+  </div>
+
+  <!-- TOP 5 ÉLÈVES -->
+  ${secTitle('🥇','Top 5 — Meilleurs élèves (équipe + chambre + indiv.)')}
+  ${top5.map((s,i)=>renderEleveRow(s,i,true)).join('')}
+
+  <!-- FLOP 5 ÉLÈVES -->
+  ${secTitle('⬇️','Flop 5 — Élèves à retenir')}
+  ${flop5.map((s,i)=>renderEleveRow(s,i,false)).join('')}
+
+  <!-- RÈGLES D'OR -->
+  ${secTitle('⭐','Analyse par règle d\'or / catégorie')}
+  <div style="background:var(--card);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden">
+    <table style="${tStyle}">
+      <thead><tr style="background:var(--bg)">
+        <th style="${thStyle}">Règle / Catégorie</th>
+        <th style="${thStyle};text-align:center">Pts +</th>
+        <th style="${thStyle};text-align:center">Pts −</th>
+        <th style="${thStyle};text-align:center">Actions</th>
+      </tr></thead>
+      <tbody>${regleRows}</tbody>
+    </table>
+  </div>
+  `;
+}
 
 /* ── Admin Classement Élèves ── */
 function aElevesRank() {
