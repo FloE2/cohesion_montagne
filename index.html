@@ -752,6 +752,8 @@ let appelJour = 'arrivee'; // 'arrivee' | 'depart'
 let lsns = [];
 let panelAct = 'classement';
 let adminTab = 'equipes';
+let bilanSearch = '';
+let bilanOpenEleves = new Set();
 let selTeam = null;
 let openCl = new Set();
 let openAdm = null;
@@ -1968,13 +1970,112 @@ function aBilan() {
     </table>
   </div>
 
-  <!-- TOP 5 ÉLÈVES -->
-  ${secTitle('🥇','Top 5 — Meilleurs élèves (équipe + chambre + indiv.)')}
-  ${top5.map((s,i)=>renderEleveRow(s,i,true)).join('')}
+  <!-- LISTE COMPLÈTE ÉLÈVES -->
+  ${secTitle('👤','Bilan individuel — tous les élèves')}
+  <div style="margin-bottom:10px">
+    <input id="bilan-search" value="${esc(bilanSearch)}" placeholder="🔍 Chercher un élève par nom, prénom ou classe…"
+      oninput="filterBilan(this.value)"
+      style="width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px">
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:10px">
+    Trié par score total (équipe + chambre héritée + points individuels) · ${presents.length} élèves · cliquez sur ▶ pour voir le détail
+  </div>
+  ${(()=>{
+    const q = bilanSearch.toLowerCase().trim();
+    const filtered = q ? scoresSorted.filter(s=>(s.e.p+' '+s.e.n+' '+s.e.c).toLowerCase().includes(q)) : scoresSorted;
+    if(!filtered.length) return '<div style="text-align:center;padding:20px;color:var(--muted);font-style:italic">Aucun résultat</div>';
+    return filtered.map((s,rank)=>{
+      const isOpen = bilanOpenEleves.has(s.e.id);
+      const tid = eToTeam[s.e.id];
+      const cid = eToCham[s.e.id];
+      const teamNom = tid ? EQ[tid]?.nom||'' : '';
+      const chamNom = cid ? CH[cid]?.nom||'' : '';
+      const teamCol = tid ? TEAM_COLS[teamIds.indexOf(tid)%TEAM_COLS.length] : '#9ca3af';
+      const scoreCol = s.total>0?'#15803d':s.total<0?'#b91c1c':'#6b7280';
+      const allPos = (indivPos[s.e.id]||0);
+      const allNeg = (indivNeg[s.e.id]||0);
 
-  <!-- FLOP 5 ÉLÈVES -->
-  ${secTitle('⬇️','Flop 5 — Élèves à retenir')}
-  ${flop5.map((s,i)=>renderEleveRow(s,i,false)).join('')}
+      // Historique individuel de cet élève
+      const eleveHist = hist.filter(h=>{
+        if(!h.eleveNom) return false;
+        const m = ALL.find(x=>\`\${x.p} \${x.n[0]}.\`===h.eleveNom||displayName(x)===h.eleveNom);
+        return m && m.id===s.e.id;
+      }).sort((a,b)=>b.ts-a.ts);
+
+      const histRows = eleveHist.map(h=>{
+        const d = new Date(h.ts);
+        const dateStr = d.toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
+        const timeStr = d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+        const col = h.delta>0?'#15803d':'#b91c1c';
+        return \`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--bg)">
+          <span style="font-size:16px;font-weight:900;color:\${col};min-width:36px;text-align:right;flex-shrink:0">\${h.delta>0?'+':''}\${h.delta}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:700">\${esc(h.regle||'Points libres')}</div>
+            <div style="font-size:10px;color:#6b7280">\${dateStr} \${timeStr} · par \${esc(h.userPrenom||h.userId||'?')}</div>
+          </div>
+        </div>\`;
+      }).join('');
+
+      // Score chambre par jour
+      const chamJours = cid ? [1,2,3,4,5].map(j=>{
+        const sc=chambreScoreJour(cid,j);
+        const col=sc>=CRITERES.length?'#15803d':sc>0?'#b45309':'#9ca3af';
+        return \`<span style="font-size:11px;font-weight:700;color:\${col}">\${sc}/\${CRITERES.length}</span>\`;
+      }).join(' · ') : '—';
+
+      const detailHtml = isOpen ? \`<div style="padding:12px 14px;background:var(--bg);border-top:1px solid var(--border)">
+        <!-- Décomposition score -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:12px">
+          <div style="background:var(--card);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:16px;font-weight:900;color:\${s.tPts>=0?'#15803d':'#b91c1c'}">\${s.tPts>0?'+':''}\${s.tPts}</div>
+            <div style="font-size:10px;color:#6b7280;margin-top:2px">🏔️ Équipe</div>
+          </div>
+          <div style="background:var(--card);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:16px;font-weight:900;color:\${s.cPts>=0?'#15803d':'#b91c1c'}">\${s.cPts>0?'+':''}\${s.cPts}</div>
+            <div style="font-size:10px;color:#6b7280;margin-top:2px">🛏️ Chambre</div>
+          </div>
+          <div style="background:var(--card);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:16px;font-weight:900;color:\${allPos>0?'#15803d':'#6b7280'}">\${allPos>0?'+':''}\${allPos||0}</div>
+            <div style="font-size:10px;color:#6b7280;margin-top:2px">👤 Pts +</div>
+          </div>
+          <div style="background:var(--card);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:16px;font-weight:900;color:\${allNeg<0?'#b91c1c':'#6b7280'}">\${allNeg||0}</div>
+            <div style="font-size:10px;color:#6b7280;margin-top:2px">👤 Pts −</div>
+          </div>
+        </div>
+        <!-- Chambre par jour -->
+        \${cid?\`<div style="margin-bottom:10px">
+          <div style="font-size:10px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">🛏️ \${esc(chamNom)} — critères par jour</div>
+          <div style="font-size:12px;color:var(--text)">\${chamJours}</div>
+        </div>\`:''}
+        <!-- Historique individuel -->
+        \${eleveHist.length?\`<div style="font-size:10px;font-weight:800;color:#6b7280;text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px">👤 Points individuels (\${eleveHist.length})</div>
+        \${histRows}\`:'<div style="font-size:12px;color:#9ca3af;font-style:italic">Aucun point individuel attribué</div>'}
+      </div>\` : '';
+
+      const pct = s.total/(Math.abs(scoresSorted[0]?.total)||1)*100;
+      const barCol = s.total>=0?'#1a73e8':'#ef4444';
+
+      return \`<div style="background:var(--card);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:6px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer"
+          onclick="toggleBilanEleve('\${s.e.id}')">
+          <div style="font-size:12px;font-weight:800;color:#9ca3af;min-width:24px;flex-shrink:0">\${q?'':rank+1}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:800">\${displayName(s.e)} \${esc(s.e.n)}
+              <span style="font-size:10px;font-weight:400;color:#6b7280;margin-left:4px">\${s.e.c}</span>
+              \${teamNom?\`<span style="font-size:10px;padding:1px 6px;border-radius:10px;background:\${teamCol}22;color:\${teamCol};font-weight:700;margin-left:4px">\${esc(teamNom)}</span>\`:''}
+            </div>
+            <div style="margin-top:4px;background:var(--bg);border-radius:20px;height:3px;overflow:hidden">
+              <div style="width:\${Math.abs(pct)}%;height:100%;background:\${barCol};border-radius:20px"></div>
+            </div>
+          </div>
+          <div style="font-size:18px;font-weight:900;color:\${scoreCol};flex-shrink:0">\${s.total>0?'+':''}\${s.total}</div>
+          <div style="font-size:12px;color:#9ca3af;flex-shrink:0">\${isOpen?'▼':'▶'}</div>
+        </div>
+        \${detailHtml}
+      </div>\`;
+    }).join('');
+  })()}
 
   <!-- RÈGLES D'OR -->
   ${secTitle('⭐','Analyse par règle d\'or / catégorie')}
@@ -1991,6 +2092,19 @@ function aBilan() {
   </div>
   `;
 }
+
+window.toggleBilanEleve = id => {
+  bilanOpenEleves.has(id) ? bilanOpenEleves.delete(id) : bilanOpenEleves.add(id);
+  rAdmin();
+  setTimeout(()=>{ const i=G('bilan-search'); if(i){i.value=bilanSearch;} },0);
+};
+
+window.filterBilan = val => {
+  bilanSearch = val;
+  bilanOpenEleves.clear();
+  rAdmin();
+  setTimeout(()=>{ const i=G('bilan-search'); if(i){i.value=val;i.focus();i.setSelectionRange(val.length,val.length);} },0);
+};
 
 /* ── Admin Classement Élèves ── */
 function aElevesRank() {
