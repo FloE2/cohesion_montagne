@@ -1578,7 +1578,18 @@ function aEquipes() {
     display:flex;align-items:center;justify-content:center;gap:8px">
     📺 Ouvrir l'affichage mural
   </button>
-  ${readonlyBtn}
+  ${(()=>{
+    const isF = cu?.login === 'florian.eude';
+    const bg = READONLY ? '#fff3cd' : '#e8f5e9';
+    const border = READONLY ? '#f59e0b' : '#4caf50';
+    const titleCol = READONLY ? '#92400e' : '#1b5e20';
+    const titleTxt = READONLY ? '👁️ Mode consultation actif' : '✏️ Mode écriture actif';
+    const subTxt = READONLY ? "Seul Florian peut modifier" : "Tous les admins peuvent modifier";
+    const btn = isF
+      ? `<button onclick="toggleReadonly()" style="padding:8px 16px;border:none;border-radius:9px;font-size:12px;font-weight:800;cursor:pointer;flex-shrink:0;background:${READONLY?'#4caf50':'#f59e0b'};color:#fff">${READONLY?'✏️ Activer écriture':'🔒 Mode consultation'}</button>`
+      : `<span style="font-size:11px;color:#9ca3af;font-style:italic">Seul Florian peut changer ce mode</span>`;
+    return `<div style="margin-bottom:14px;background:${bg};border:1.5px solid ${border};border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px"><div style="flex:1"><div style="font-size:13px;font-weight:900;color:${titleCol}">${titleTxt}</div><div style="font-size:11px;color:#6b7280;margin-top:2px">${subTxt}</div></div>${btn}</div>`;
+  })()}
   ${teams.length ? items : '<div class="empty"><div class="em">🏔️</div><p>Aucune équipe.<br>Créez-en une !</p></div>'}`;
 }
 
