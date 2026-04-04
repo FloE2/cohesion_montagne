@@ -410,6 +410,10 @@ header{background:linear-gradient(135deg,#0d1b4b,#1a73e8);color:#fff;
 
 <!-- ═══════ APP ═══════ -->
 <div id="app" style="display:none">
+  <div id="readonly-banner" style="display:none;background:#b45309;color:#fff;padding:8px 16px;
+    align-items:center;justify-content:center;gap:8px;font-size:13px;font-weight:800;text-align:center">
+    👁️ Mode consultation — Les modifications sont désactivées
+  </div>
   <header>
     <div class="hrow1">
       <div class="hl">🏔️</div>
@@ -754,6 +758,7 @@ let lsns = [];
 let panelAct = 'classement';
 let adminTab = 'equipes';
 let bilanSearch = '';
+let READONLY = false; // mode consultation
 let bilanOpenEleves = new Set();
 let selTeam = null;
 let openCl = new Set();
@@ -859,7 +864,13 @@ function startApp() {
   const u9 = onValue(ref(db,'sejour/appel_gare'), s=>{ AP=s.val()||{}; if(panelAct==='appel') rAppel(); });
   const u7 = onValue(ref(db,'sejour/ski_groupes'), s=>{ SK=s.val()||{}; if(panelAct==='ski') rSki(); });
   const u8 = onValue(ref(db,'sejour/ski_tournant'), s=>{ SKT=s.val()||''; if(panelAct==='ski') rSki(); });
-  lsns = [u1,u2,u3,u4,u5,u6,u7,u8,u9];
+  const u10 = onValue(ref(db,'sejour/readonly'), s=>{
+    READONLY = s.val() === true;
+    const banner = G('readonly-banner');
+    if(banner) banner.style.display = (READONLY && cu?.login !== 'florian.eude') ? 'flex' : 'none';
+    if(panelAct==='admin') rAdmin();
+  });
+  lsns = [u1,u2,u3,u4,u5,u6,u7,u8,u9,u10];
   showPanel('classement');
 }
 
@@ -1392,6 +1403,7 @@ window.pickEleve = id => {
 
 /* ── Attribuer points à un élève (→ équipe) ── */
 window.attribuerEleve = async delta => {
+  if(!canWrite()) return;
   if(!selEleve) return;
   const e = EM[selEleve]; if(!e) return;
   const teamEntry = Object.entries(EQ).find(([,t])=>(t.eleves||[]).includes(selEleve));
@@ -1437,6 +1449,7 @@ window.attribuerEleve = async delta => {
 };
 
 window.attribuer = async delta => {
+  if(!canWrite()) return;
   if(!selTeam) return;
   const t = (EQ[selTeam]); if(!t) return;
   const regle = G('rsel')?.value || '';
@@ -1565,6 +1578,7 @@ function aEquipes() {
     display:flex;align-items:center;justify-content:center;gap:8px">
     📺 Ouvrir l'affichage mural
   </button>
+  ${readonlyBtn}
   ${teams.length ? items : '<div class="empty"><div class="em">🏔️</div><p>Aucune équipe.<br>Créez-en une !</p></div>'}`;
 }
 
@@ -2339,6 +2353,7 @@ window.togglePwdView = (sk, pwd) => {
 
 /* ═══ ANNULER POINT ═══ */
 window.annulerPoint = async (hId, teamId, delta) => {
+  if(!canWrite()) return;
   const sign = delta > 0 ? `+${delta}` : `${delta}`;
   if(!confirm(`Annuler cette attribution de ${sign} pt${Math.abs(delta)>1?'s':''} ?\nLes points seront restitués.`)) return;
   const t = EQ[teamId]; if(!t) return;
@@ -2825,6 +2840,7 @@ window.saveChambreNom = async (id) => {
 
 /* ── Toggle critère ── */
 window.toggleCrit = async (chambreId, jour, critIdx) => {
+  if(!canWrite()) return;
   const path = `sejour/chambre_checks/${chambreId}/j${jour}/c${critIdx}`;
   const cur = ((CK[chambreId]||{})[`j${jour}`]||{})[`c${critIdx}`] || false;
   const newVal = !cur;
@@ -2852,6 +2868,7 @@ window.toggleCrit = async (chambreId, jour, critIdx) => {
 
 /* ── Modifier le bonus journalier ── */
 window.changeBonus = async (chambreId, jour, delta) => {
+  if(!canWrite()) return;
   const day = (CK[chambreId]||{})[`j${jour}`]||{};
   const cur = day.bonus || 0;
   const newVal = cur + delta;
@@ -3755,6 +3772,7 @@ window.setSkiView  = v => { skiView=v; rSki(); };
 window.initSkiSiVide = () => initSkiSiVide();
 
 window.saveSkiEnseignant = async (id, val) => {
+  if(!canWrite()) return;
   await update(ref(db,`sejour/ski_groupes/${id}`), {enseignant: val.trim()});
   toast('Enseignant mis à jour ✓','ok');
 };
@@ -3767,6 +3785,7 @@ window.editTournant = () => {
 };
 
 window.moveSkiEleve = async (eid, fromId, toId) => {
+  if(!canWrite()) return;
   if(!toId) return;
   const from = SK[fromId]; const to = SK[toId];
   if(!from||!to) return;
@@ -3916,6 +3935,7 @@ function rAppel() {
 window.setAppelJour = j => { appelJour=j; rAppel(); };
 
 window.setAppelEtat = async (eid, jour, etat) => {
+  if(!canWrite()) return;
   // Mise à jour locale immédiate
   if(!AP[jour]) AP[jour] = {};
   if(etat === null) { delete AP[jour][eid]; }
@@ -3938,6 +3958,21 @@ window.resetAppel = async (jour) => {
   rAppel();
   await remove(ref(db, `sejour/appel_gare/${jour}`)).catch(()=>{ toast('Erreur réseau ❌','err'); });
   toast(`Appel ${label} remis à zéro ✓`, 'ok');
+};
+
+/* ═══ MODE CONSULTATION ═══ */
+function canWrite() {
+  if(!READONLY) return true;
+  if(cu?.login === 'florian.eude') return true;
+  toast('👁️ Mode consultation — modifications désactivées','err');
+  return false;
+}
+
+window.toggleReadonly = async () => {
+  if(cu?.login !== 'florian.eude') return;
+  const newVal = !READONLY;
+  await set(ref(db,'sejour/readonly'), newVal);
+  toast(newVal ? '🔒 Mode consultation activé' : '✏️ Mode écriture activé', newVal ? '' : 'ok');
 };
 
 /* ═══ TOAST ═══ */
